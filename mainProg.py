@@ -173,7 +173,9 @@ def passive_mode(activationCode):
 def semi_active_mode(activationCode):
     assistConst = activationCode[1]
     admittance1 = activationCode[2]
-
+    # Constructing Admittance haptic system difference equation
+    systemCoef = admittance2_constants(admittance2)
+    positionTarget = systemCoef[1]+systemCoef[2]
 #    while True:
         #do something
     
