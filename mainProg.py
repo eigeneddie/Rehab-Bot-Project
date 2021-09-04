@@ -10,6 +10,7 @@
 # livePlotter.py: plotting important states (Leg pushing-pulling force, position of slider, knee angle, etc.)
 # saveDatabase.py: sending the data to a cloud to be accessed by essential parties (e.g. doctors)
 #
+# 
 # MIT license, all rights reserved.
 
 import RPi.GPIO as GPIO  # import GPIO
