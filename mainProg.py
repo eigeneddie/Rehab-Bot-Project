@@ -184,7 +184,7 @@ def full_active_mode(activationCode):
     
     # Constructing Admittance haptic system difference equation
     systemCoef = admittance2_constants(admittance2)
-    positionTarget = systemCoef[1]
+    positionTarget = systemCoef[1]+systemCoef[2]
     #strength_training_option(activeModeVar)
 
     #while True:
