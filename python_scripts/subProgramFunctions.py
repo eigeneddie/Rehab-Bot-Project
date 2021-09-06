@@ -1,5 +1,52 @@
 import numpy as np
 import serial 
+import time 
+
+def initial_diagnostics(forceSensor, distanceSensor, window): # for now, just distance sensor and force sensor
+    # Verify sensors are working
+
+    # a. Force sensor
+    print("====1. Setting up Load Cell!======")
+    err = False
+    read_bool = False
+
+    # check if load cell reading is successful
+    while not (err and read_bool):
+        err = forceSensor.zero()
+        if err == False:
+            raise ValueError('Tare is unsuccessful. Retrying')
+        else:
+            print('Tare successful!')
+        
+        reading = forceSensor.get_raw_data_mean()
+        if reading:
+            #okay
+            read_bool = True
+        else:
+            print('invalid data, retrying')
+        
+        if (err and read_bool) == True:
+            print("-Load cell NOMINAL\n")     
+
+    print("current weight: " + forceSensor.get_weight_mean(window) + "grams")
+    print(" ")
+    print("Standing by...")
+    time.sleep(3) # standing by
+
+    # b. Distance sensor (HC-SR04 ultrasonic)
+    print("====2. Setting up Distance Sensor!======")
+    dist_okay = False
+
+    while not dist_okay:
+        print("testing distance sensor")
+        dist_okay = isinstance(distanceSensor.distance, float)
+
+    if dist_okay == True:
+        print('-Distance sensor NOMINAL\n')
+
+    #=====================================================
+    print("\n")
+    print("Sensors: Nominal")
 
 def serial_routine(deviceLocation): # Interface with LCD GUI controlled by Arduino
     
@@ -17,27 +64,9 @@ def sensor_interface():
 def get_force_reading(gravity, force_sensor, window):
     return gravity*force_sensor.get_weight_mean(window)/1000
 
-def passive_mode(activationCode):
+def isotonic_training(): # Admittance Control
+
     return 0
 
-def semi_active_mode(activationCode, admittance_Constants):
-    assistConst = activationCode[1]
-    admittance1 = activationCode[2]
-    # Constructing Admittance haptic system difference equation
-    systemCoef = admittance_Constants(admittance1)
-    positionTarget = systemCoef[1]+systemCoef[2]
-#    while True:
-        #do something
-    
-def full_active_mode(activationCode, position_output):
-    activeModeVar = activationCode[1]
-    admittance2 = activationCode[2]
-    
-    # Constructing Admittance haptic system difference equation
-    systemCoef = admittance2_constants(admittance2)
-    pos_out = systemModel(systemCoef, position_output, force_input, forcesensor)
-    position_output.append(pos_out)
-    #strength_training_option(activeModeVar)
-
-    #while True:
-        # do something
+def isometric_training(): # Position Control
+    return 0
