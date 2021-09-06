@@ -1,8 +1,9 @@
 import numpy as np
 import serial 
-import time 
+from time import sleep
 
-def initial_diagnostics(forceSensor, distanceSensor, window): # for now, just distance sensor and force sensor
+def initial_diagnostics(forceSensor, distanceSensor, window): 
+    # for now, just distance sensor and force sensor
     # Verify sensors are working
 
     # a. Force sensor
@@ -31,7 +32,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window): # for now, just di
     print("current weight: " + forceSensor.get_weight_mean(window) + "grams")
     print(" ")
     print("Standing by...")
-    time.sleep(3) # standing by
+    sleep(2) # standing by
 
     # b. Distance sensor (HC-SR04 ultrasonic)
     print("====2. Setting up Distance Sensor!======")
@@ -70,3 +71,10 @@ def isotonic_training(): # Admittance Control
 
 def isometric_training(): # Position Control
     return 0
+
+class admittanceSystem():
+    # Not sure if the second order force to position system
+    # should use OOP
+    
+    def __init__(self):
+        pass
