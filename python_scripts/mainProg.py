@@ -43,6 +43,7 @@ potAngleAnalogIn = 17 # check again
 #   a. Force sensor
 GPIO.setmode(GPIO.BCM) 
 force_sensor = HX711(doutPin, pdSCKPin)
+force_sensor.set_scale_ratio(pre_SetRatio)  # set ratio for current channel
 
 #   b. Distance sensor
 distance_sensor = DistanceSensor(trigger, echo)
@@ -50,7 +51,8 @@ distance_sensor = DistanceSensor(trigger, echo)
 #   c. knee angle sensor
 
 # 3. Other global variables
-deviceLocation = '/dev/ttyACM0'
+deviceLocation = '/dev/ttyACM0' # port in raspi
+gravity = 9.81 # [m/s/s]
 
 # Current slider position reading (output)
 positon_output = [] # [mm] ---> Y[n] signal output
@@ -59,11 +61,11 @@ positon_output = [] # [mm] ---> Y[n] signal output
 force_input = [] # [N] ---> X[n] signal input
 
 # Past values of signals
-position_output1 = 0 # [mm] ---> Y[n-1]
-position_output2 = 0 # [mm] ---> Y[n-1]
-force_input0 = 0 # [N] ---> X[n]
-force_input1 = 0 # [N] ---> X[n-1]
-force_input2 = 0 # [N] ---> X[n-2]
+pos_out1 = 0 # [mm] ---> Y[n-1]
+pos_out2 = 0 # [mm] ---> Y[n-1]
+force_in0 = 0 # [N] ---> X[n]
+force_in1 = 0 # [N] ---> X[n-1]
+force_in2 = 0 # [N] ---> X[n-2]
  
 #=============================
 #=============================
@@ -99,7 +101,6 @@ semiActiveConstants3 = np.array([0,  1.99899051, -0.9990005 ],
 # =======2. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS==================
 # =================================================================
 
-
 # mass = 1 kg, damper = 5 Ns/m, spring = 5 N/m
 fullActiveConstants1 = np.array([0, 1.99500749, -0.99501248], 
                                 [2.49376248e-07, 4.98752495e-07, 2.49376248e-07])
@@ -113,9 +114,29 @@ fullActiveConstants3 = np.array([0, 1.9989955, -0.9990005],
                                 [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
 
 
-#=============================
-#=============================
+# =================================================================
+# =====================MAIN SYSTEM FUNCTIONS=======================
+# =================================================================
 
+def main_prog(): 
+    global force_sensor, distance_sensor
+
+    # ====== STEP 1. INITIATING SYSTEM DIAGNOSTICS =======
+    print("====main program====\n ====Rehab-Bot====\n")
+    print("Step 1. Initiating system diagnostics")
+    initial_diagnostics(force_sensor, distance_sensor)
+
+
+    while True:
+        # ====== STEP 2. SYSTEM SELECTION =======
+        print("Step 2. System selection\n")
+        sleep(1)
+        print("Standby mode 1....waiting user input")
+        # this is the part where raspi accepts integer from arduino
+
+        activationCode  = serial_routine()
+
+        run_rehab_program(activationCode)
 
 def initial_diagnostics(forceSensor, distanceSensor): # for now, just distance sensor and force sensor
     # Verify sensors are working
@@ -143,7 +164,6 @@ def initial_diagnostics(forceSensor, distanceSensor): # for now, just distance s
         if (err and read_bool) == True:
             print("-Load cell NOMINAL\n")     
 
-    forceSensor.set_scale_ratio(pre_SetRatio)  # set ratio for current channel
     print("current weight: " + forceSensor.get_weight_mean(weightMeanWindow) + "grams")
     print(" ")
     print("Standing by...")
@@ -164,27 +184,6 @@ def initial_diagnostics(forceSensor, distanceSensor): # for now, just distance s
     print("\n")
     print("Sensors: Nominal")
 
-
-def main(): 
-    global force_sensor, distance_sensor
-
-    # ====== STEP 1. INITIATING SYSTEM DIAGNOSTICS =======
-    print("====main program====\n ====Rehab-Bot====\n")
-    print("Step 1. Initiating system diagnostics")
-    initial_diagnostics(force_sensor, distance_sensor)
-
-
-    while True:
-        # ====== STEP 2. SYSTEM SELECTION =======
-        print("Step 2. System selection\n")
-        sleep(1)
-        print("Standby mode 1....waiting user input")
-        # this is the part where raspi accepts integer from arduino
-
-        activationCode  = serial_routine()
-
-        run_rehab_program(activationCode)
-
 # ======SELECTING ADMITTANCE PROGRAMS=========
 # 1. General function
 #----------------------------
@@ -200,47 +199,6 @@ def run_rehab_program(activationCode):
 
 # ======SYSTEM LEVEL FUNCTIONALITY=======
 
-def serial_routine(): # Interface with LCD GUI controlled by Arduino
-    
-    ser = serial.Serial(deviceLocation, 9600, timeout=1)
-    ser.flush()
-
-    if ser.in_waiting > 0:
-        line = ser.readline().decode('utf-8').rstrip()    
-
-    return line # Activation code string to select either the three sub-program
-
-def sensor_interface():
-    return 0
-
-def get_force_reading():
-    return 0
-
-
-
-def passive_mode(activationCode):
-    return 0
-
-def semi_active_mode(activationCode):
-    assistConst = activationCode[1]
-    admittance1 = activationCode[2]
-    # Constructing Admittance haptic system difference equation
-    systemCoef = admittance2_constants(admittance1)
-    positionTarget = systemCoef[1]+systemCoef[2]
-#    while True:
-        #do something
-    
-def full_active_mode(activationCode):
-    activeModeVar = activationCode[1]
-    admittance2 = activationCode[2]
-    
-    # Constructing Admittance haptic system difference equation
-    systemCoef = admittance2_constants(admittance2)
-    positionTarget = systemCoef[1]+systemCoef[2]
-    #strength_training_option(activeModeVar)
-
-    #while True:
-        # do something
 
 # ======THREE MAIN PROGRAMS========
 #
@@ -291,7 +249,7 @@ def isotonic_training(): # Admittance Control
 def isometric_training(): # Position Control
     return 0
 
-def systemModel(sysCoefficient, position_output, force_input):
+def systemModel(sysCoefficient, force_input, forcesensor):
     '''
     -> Difference equation second order format
         y[n] = a_1*y[n-1] + a_2*y[n-2] + b_0*x[n] + b_1*x[n-1] + b_2*x[n-2]
@@ -300,27 +258,36 @@ def systemModel(sysCoefficient, position_output, force_input):
         [a_0, a_1, a_2]
         [b_0, b_1, b_2]
     '''
-    a_i_coef = sysCoefficient[0, :]
-    b_i_coef = sysCoefficient[1, :]
+    a_i = sysCoefficient[0, :]
+    b_i = sysCoefficient[1, :]
 
-    position_output.append(a_i_coef[1]*)
-
-
-
-
-
+    pos_term = a_i[1]*pos_out1 + a_i[2]*pos_out2
+    force_term = b_i[0]*force_in0 + b_i[1]*force_in1 + b_i[2]*force_in2
+    pos_out = pos_term + force_term
+    return pos_out
+ 
+# Running main program 
+try:  
+    # here you put your main loop or block of code  
+    main_prog()
     
-# Run main program
-if __name__=="__main__":
-    main()
+except (KeyboardInterrupt, SystemExit):  
+    # here you put any code you want to run before the program   
+    # exits when you press CTRL+C  
+    print ("Bye!\n") # print value of counter  
+  
+finally:  
+    GPIO.cleanup() # this ensures a clean exit  
 
 #=========
-# NOTES\
+# NOTES & USEFUL LINKS
 #=========
 # synchronization ? 
 # race condition
 # https://medium.com/mindful-engineering/multithreading-multiprocessing-in-python3-f6314ab5e23f
 # https://www.geeksforgeeks.org/multithreading-in-python-set-2-synchronization/
 # https://medium.com/velotio-perspectives/an-introduction-to-asynchronous-programming-in-python-af0189a88bbb
-
+#
+#  running code correctly with prog involving GPIO http://raspi.tv/2013/rpi-gpio-basics-3-how-to-exit-gpio-programs-cleanly-avoid-warnings-and-protect-your-pi
+#  
 # I am yet to meet anyone who has not truly worked hard for thousands of hours in order to accomplish something great. 
