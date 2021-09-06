@@ -13,6 +13,7 @@
 # 
 # MIT license, all rights reserved.
 
+import subProgramFunctions as spf 
 import RPi.GPIO as GPIO  # import GPIO
 from hx711 import HX711  # import the class HX711
 import numpy as np
@@ -38,10 +39,6 @@ echo = 24
 # - potensiometer
 potAngleAnalogIn = 17 # check again
 
-# Other global variables
-deviceLocation = '/dev/ttyACM0'
-
-
 # 2. Configuring sensors
 #   a. Force sensor
 GPIO.setmode(GPIO.BCM) 
@@ -52,12 +49,37 @@ distance_sensor = DistanceSensor(trigger, echo)
 
 #   c. knee angle sensor
 
+# 3. Other global variables
+deviceLocation = '/dev/ttyACM0'
+
+# Current slider position reading (output)
+positon_output = [] # [mm] ---> Y[n] signal output
+
+# Current force reading (input)
+force_input = [] # [N] ---> X[n] signal input
+
+# Past values of signals
+position_output1 = 0 # [mm] ---> Y[n-1]
+position_output2 = 0 # [mm] ---> Y[n-1]
+force_input0 = 0 # [N] ---> X[n]
+force_input1 = 0 # [N] ---> X[n-1]
+force_input2 = 0 # [N] ---> X[n-2]
+ 
 #=============================
 #=============================
 # FULL/SEMI ACTIVE CONSTANTS
 #=============================
 #=============================
 
+'''
+-> Difference equation second order format
+    y[n] = a_1*y[n-1] + a_2*y[n-2] + b_0*x[n] + b_1*x[n-1] + b_2*x[n-2]
+
+-> matrix format
+    [a_0, a_1, a_2]
+    [b_0, b_1, b_2]
+
+'''
 # =================================================================
 # =======1. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS==============
 # =================================================================
@@ -76,6 +98,7 @@ semiActiveConstants3 = np.array([0,  1.99899051, -0.9990005 ],
 # =================================================================
 # =======2. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS==================
 # =================================================================
+
 
 # mass = 1 kg, damper = 5 Ns/m, spring = 5 N/m
 fullActiveConstants1 = np.array([0, 1.99500749, -0.99501248], 
@@ -160,56 +183,7 @@ def main():
 
         activationCode  = serial_routine()
 
-        
         run_rehab_program(activationCode)
-
-
-def sensor_interface():
-    return 0
-
-
-def passive_mode(activationCode):
-    return 0
-
-def semi_active_mode(activationCode):
-    assistConst = activationCode[1]
-    admittance1 = activationCode[2]
-    # Constructing Admittance haptic system difference equation
-    systemCoef = admittance2_constants(admittance2)
-    positionTarget = systemCoef[1]+systemCoef[2]
-#    while True:
-        #do something
-    
-
-def full_active_mode(activationCode):
-    activeModeVar = activationCode[1]
-    admittance2 = activationCode[2]
-    
-    # Constructing Admittance haptic system difference equation
-    systemCoef = admittance2_constants(admittance2)
-    positionTarget = systemCoef[1]+systemCoef[2]
-    #strength_training_option(activeModeVar)
-
-    #while True:
-        # do something
-
-
-def get_force_reading():
-    return 0
-
-# ======SERIAL FUNCTIONALITIES=======
-def serial_routine():
-    
-    ser = serial.Serial(deviceLocation, 9600, timeout=1)
-    ser.flush()
-
-    if ser.in_waiting > 0:
-        line = ser.readline().decode('utf-8').rstrip()    
-
-    return line 
-
-# ======SELECTING FULL PASSIVE PROGRAM========
-# To be written
 
 # ======SELECTING ADMITTANCE PROGRAMS=========
 # 1. General function
@@ -222,6 +196,56 @@ def run_rehab_program(activationCode):
         3: full_active_mode(activationCode)     
     }
     switcher.get(activationCode[0])
+
+
+# ======SYSTEM LEVEL FUNCTIONALITY=======
+
+def serial_routine(): # Interface with LCD GUI controlled by Arduino
+    
+    ser = serial.Serial(deviceLocation, 9600, timeout=1)
+    ser.flush()
+
+    if ser.in_waiting > 0:
+        line = ser.readline().decode('utf-8').rstrip()    
+
+    return line # Activation code string to select either the three sub-program
+
+def sensor_interface():
+    return 0
+
+def get_force_reading():
+    return 0
+
+
+
+def passive_mode(activationCode):
+    return 0
+
+def semi_active_mode(activationCode):
+    assistConst = activationCode[1]
+    admittance1 = activationCode[2]
+    # Constructing Admittance haptic system difference equation
+    systemCoef = admittance2_constants(admittance1)
+    positionTarget = systemCoef[1]+systemCoef[2]
+#    while True:
+        #do something
+    
+def full_active_mode(activationCode):
+    activeModeVar = activationCode[1]
+    admittance2 = activationCode[2]
+    
+    # Constructing Admittance haptic system difference equation
+    systemCoef = admittance2_constants(admittance2)
+    positionTarget = systemCoef[1]+systemCoef[2]
+    #strength_training_option(activeModeVar)
+
+    #while True:
+        # do something
+
+# ======THREE MAIN PROGRAMS========
+#
+# 1. For FULL-PASSIVE program
+#  To be written
 
 # 2. For SEMI-ACTIVE program
 #----------------------------
@@ -267,11 +291,23 @@ def isotonic_training(): # Admittance Control
 def isometric_training(): # Position Control
     return 0
 
-def systemModel(sysCoefficient, pos_new, pos_old):
+def systemModel(sysCoefficient, position_output, force_input):
+    '''
+    -> Difference equation second order format
+        y[n] = a_1*y[n-1] + a_2*y[n-2] + b_0*x[n] + b_1*x[n-1] + b_2*x[n-2]
+
+    -> matrix format
+        [a_0, a_1, a_2]
+        [b_0, b_1, b_2]
+    '''
     a_i_coef = sysCoefficient[0, :]
     b_i_coef = sysCoefficient[1, :]
 
-    pos_new[]
+    position_output.append(a_i_coef[1]*)
+
+
+
+
 
     
 # Run main program
