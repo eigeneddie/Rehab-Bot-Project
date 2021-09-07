@@ -38,7 +38,7 @@ pre_SetRatio = 128 #masih ngasal
 trigger = 18
 echo = 24
 
-# - potensiometer
+# - potensiometer. 
 potAngleAnalogIn = 17 # check again
 
 # 2. Configuring sensors
@@ -155,7 +155,6 @@ def run_rehab_program(activationCode):
 # =================================================================
 # ==================3. THREE MAIN PROGRAMS=========================
 # =================================================================
-#
 
 #----------------------------
 # 1. For FULL-PASSIVE program
@@ -175,7 +174,7 @@ def full_passive_position_control():
 def semi_active_mode(activationCode, admittance_Constants):
     '''
     Sub-program 2: Patient semi-active treatment.
-    
+
         The resistance of this rehabilitation training strategy uses
         haptic rendering of an admittance environment (inputs force, 
         outputs position). Other resistance strategies could be used such 
@@ -229,7 +228,6 @@ def full_active_mode(activationCode, position_output, admittance_Constants):
         outputs position). Other resistance strategies could be used such 
         as a friction model.  
     '''
-
     activeModeVar = activationCode[1]
     admittance2 = activationCode[2]
     stopCondition = False
@@ -238,7 +236,7 @@ def full_active_mode(activationCode, position_output, admittance_Constants):
 
     while not stopCondition:
         # Run active mode, also add the break condition
-        strength_training_option(strength_option)
+        strength_training_option(activeModeVar)
         #get_force_reading(gravity, force_sensor, window)
 
         line = spf.serial_routine(deviceLocation) # check stop condition
@@ -319,7 +317,8 @@ if __name__=="__main__":
 # https://www.geeksforgeeks.org/multithreading-in-python-set-2-synchronization/
 # https://medium.com/velotio-perspectives/an-introduction-to-asynchronous-programming-in-python-af0189a88bbb
 #
-#  running code correctly with prog involving GPIO: http://raspi.tv/2013/rpi-gpio-basics-3-how-to-exit-gpio-programs-cleanly-avoid-warnings-and-protect-your-pi
-#  alternatives to if and elif statements: https://medium.com/swlh/3-alternatives-to-if-statements-to-make-your-python-code-more-readable-91a9991fb353
-#  interrupt program by serial input, maybe: https://stackoverflow.com/questions/50566559/pythons-pyserial-with-interrupt-mode
+# running code correctly with prog involving GPIO: http://raspi.tv/2013/rpi-gpio-basics-3-how-to-exit-gpio-programs-cleanly-avoid-warnings-and-protect-your-pi
+# alternatives to if and elif statements: https://medium.com/swlh/3-alternatives-to-if-statements-to-make-your-python-code-more-readable-91a9991fb353
+# interrupt program by serial input, maybe: https://stackoverflow.com/questions/50566559/pythons-pyserial-with-interrupt-mode
+# serial com raspi-arduino: https://roboticsbackend.com/raspberry-pi-arduino-serial-communication/ 
 # I am yet to meet anyone who has not truly worked hard for thousands of hours in order to accomplish something great. 
