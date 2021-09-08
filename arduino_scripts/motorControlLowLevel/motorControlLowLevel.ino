@@ -1,5 +1,5 @@
 /* Rehabilitation Device for lower extremity: low-level control module
- *  Copyright (c) 2021, Edgar Sutawika
+ *  Edgar Sutawika
  *  
  *  Brushless DC motor controller based on 
  *  simpleFOC library: https://docs.simplefoc.com/code
