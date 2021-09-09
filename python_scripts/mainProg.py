@@ -11,14 +11,15 @@
 # MIT license, all rights reserved.
 
 #!/usr/bin/env python3
+
 import subProgramFunctions as spf 
 import RPi.GPIO as GPIO  # import GPIO
 from hx711 import HX711  # import the class HX711
+from gpiozero import DistanceSensor
+
 import numpy as np
-import matplotlib.pyplot as plt
 import serial
 import os
-from gpiozero import DistanceSensor
 import time
 from time import sleep
 import pandas as pd
@@ -55,6 +56,9 @@ distance_sensor = DistanceSensor(trigger, echo)
 # 3. Other global variables
 deviceLocation = '/dev/ttyACM0' # port in raspi
 gravity = 9.81 # [m/s/s]
+freqSample = 500 # [Hz] system operating frequency
+ser = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
+ser.flush()
 
 # Current slider position reading (output)
 positon_output = [] # [mm] ---> Y[n] signal output
@@ -92,22 +96,20 @@ force_in2 = 0 # [N] ---> X[n-2]
 #----------------------------
 # CAUTION: Transfer function is still X[m]/F[N/m]. Must be X[mm]/F[N/mm]!!
 
-# 
-damper1 = 10 # [N.s/mm]
-spring1 = 0.5 # [N/mm]
+# Option 1, 2, 3
+den_semi_1 = [10, 0.5] # [N.s/mm, N/mm]
+den_semi_2 = [1, 0.2] # [N.s/mm, N/mm]
+den_semi_3 = [10, 0.5] # [N.s/mm, N/mm]
 
-def strength_training_option(strength_option): 
-    # full-active training selection (position or admittance control)
-    switcher = {
-        0: spf.isotonic_training(),
-        1: spf.isometric_training()
-    }
-    switcher.get(strength_option)
 #----------------------------
 # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
 # CAUTION: Transfer function is still X[m]/F[N/m]. Must be X[mm]/F[N/mm]!!
 
+# Option 1, 2, 3
+den_full_1 = [10, 0.5] # [N.s/mm, N/mm]
+den_full_2 = [1, 0.2] # [N.s/mm, N/mm]
+den_full_3 = [10, 0.5] # [N.s/mm, N/mm]
 
 # =================================================================
 # ==================2. MAIN SYSTEM FUNCTIONS=======================
@@ -128,7 +130,7 @@ def main_prog():
         sleep(2)
         print("Standby mode 1....waiting user input")
         # = This is the part where raspi accepts integer from arduino
-        activationCode  = spf.serial_routine()
+        activationCode  = spf.serial_routine(ser)
 
         # => Run rehabilitation procedure based on 
         #    user input through display.
@@ -139,12 +141,12 @@ def main_prog():
 # 2. selection of rehabilitation mode
 def run_rehab_program(activationCode):
     
-    switcher = {
+    prog_option = {
         1: passive_mode(activationCode),
         2: semi_active_mode(activationCode),
         3: full_active_mode(activationCode)     
     }
-    switcher.get(activationCode[0])
+    prog_option.get(activationCode[0])
 
 # =================================================================
 # ==================3. THREE MAIN PROGRAMS=========================
@@ -187,22 +189,22 @@ def assistive_constants(assistiveConstCode):
     Assistive value constants
     values are still placeholders
     '''
-    switcher = {
-        0: 50,
+    assist_const = {
+        0: 50, # [ ] unit not decided
         1: 200,
         2: 100
     }
-    switcher.get(assistiveConstCode)
+    assist_const.get(assistiveConstCode)
 
 def admittance1_constants(admittanceCode): 
     # Spring, mass, damper constants selection (Three options)
     # 
-    switcher = {
-        0: semiActiveConstants1, 
-        1: semiActiveConstants2,
-        2: semiActiveConstants3,
+    damper_spring_pair = {
+        0: den_semi_1, 
+        1: den_semi_2,
+        2: den_semi_3,
     }
-    switcher.get(admittanceCode)
+    damper_spring_pair.get(admittanceCode)
 
 #----------------------------
 # 3. For FULL-ACTIVE program
@@ -221,13 +223,20 @@ def full_active_mode(activationCode, position_output, admittance_Constants):
         haptic rendering of an admittance environment (inputs force, 
         outputs position). Other resistance strategies could be used such 
         as a friction model.  
+        
+        ADMITTANCE-type device algorithm (mass-spring-damper)
+        1. read force of the user
+        2. calculate the resulting position
+        3. send corresponding position to low level controller
+        4. CHANGE virtual environment STATE
+
+        For analogy with IMPEDANCE-type algorithm (see stanford hapkit)
+        1. read position of user (compute position in counts --> to meters)
+        2. calculate the resulting force
+        3, send corresponding force to motor
+        4. change virtual environment of state
     '''
 
-    # Admittance-type device algorithm (mass-spring-damper)
-    # 1. read force of the user
-    # 2. calculate the resulting position
-    # 3. send corresponding position to low level controller
-    # 4. CHANGE virtual environment STATE
     activeModeVar = activationCode[1]
     admittance2 = activationCode[2]
     stopCondition = False
@@ -236,10 +245,11 @@ def full_active_mode(activationCode, position_output, admittance_Constants):
 
     while not stopCondition:
         # Run active mode, also add the break condition
-        strength_training_option(activeModeVar)
+        line = spf.serial_routine(ser) # check stop condition
+        strength_training_option(activeModeVar, ser)
         #get_force_reading(gravity, force_sensor, window)
 
-        line = spf.serial_routine(deviceLocation) # check stop condition
+        
         # serial_routine solution may not be right. Might change it into something
         # like an interrupt routine.
         if line == "-s":
@@ -247,22 +257,35 @@ def full_active_mode(activationCode, position_output, admittance_Constants):
 
 def strength_training_option(strength_option): 
     # full-active training selection (position or admittance control)
-    switcher = {
-        0: spf.isotonic_training(),
-        1: spf.isometric_training()
+    full_active_subProg = {
+        0: isotonic_training(),
+        1: isometric_training()
     }
-    switcher.get(strength_option)
+    full_active_subProg.get(strength_option)
+
+def isotonic_training(admittance2): # Admittance Control
+    # Constructing Admittance haptic system difference equation
+    systemCoef_TF_cont = admittance2_constants(admittance2)
+    systemCoef_TF_disc = spf.diff_eq_coeff(systemCoef_TF_cont, freqSample)
+
+    while True:
+
+        pos_out = systemModel_adm(systemCoef_TF_disc, position_output, force_input, forcesensor)
+        position_output.append(pos_out)
+
+    return 0
+
+def isometric_training(): # Position Control
+    return 0
 
 def admittance2_constants(admittanceCode): 
     # Spring, mass, damper constants selection (Three options)
-    switcher = {
-        0: fullActiveConstants1, 
-        1: fullActiveConstants2,
-        2: fullActiveConstants3,
+    damper_spring_pair = {
+        0: den_full_1, 
+        1: den_full_2,
+        2: den_full_3,
     }
-    switcher.get(admittanceCode)
-
-
+    damper_spring_pair.get(admittanceCode)
 # =================================================================
 # ====================4. HAPTIC RENDERING =========================
 # =================================================================
@@ -281,8 +304,8 @@ def systemModel_adm(sysCoefficient, force_input, forcesensor):
     a_i = sysCoefficient[0, :]
     b_i = sysCoefficient[1, :]
 
-    pos_term = a_i[1]*pos_out1 + a_i[2]*pos_out2
-    force_term = b_i[0]*force_in0 + b_i[1]*force_in1 + b_i[2]*force_in2
+    pos_term = a_i[1]*pos_out1 
+    force_term = b_i[0]*force_in0 + b_i[1]*force_in1
     pos_out = pos_term + force_term
 
     return pos_out
@@ -293,16 +316,18 @@ def systemModel_adm(sysCoefficient, force_input, forcesensor):
 
 # Running main program 
 try:  
-    # here you put your main loop or block of code  
+    # main loop of program 
     main_prog()
     
 except (KeyboardInterrupt, SystemExit):  
-    # here you put any code you want to run before the program   
-    # exits when you press CTRL+C  
+    # code that executes before exiting after ctrl+C  
     print ("Bye!\n")
+    sleep(1)
   
 finally:  
     GPIO.cleanup() # this ensures a clean exit  
+    print("shutting down...")
+    sleep(2)
 
 ''' if program is succesfull, we run program using these lines (maybe?)
 if __name__=="__main__":

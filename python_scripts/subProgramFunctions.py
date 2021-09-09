@@ -1,5 +1,4 @@
 import numpy as np
-import serial 
 from time import sleep
 from scipy import signal
 
@@ -50,31 +49,18 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
     print("\n")
     print("Sensors: Nominal")
 
-def serial_routine(deviceLocation): # Interface with LCD GUI controlled by Arduino
-    
-    ser = serial.Serial(deviceLocation, 9600, timeout=1)
-    ser.flush()
+def serial_routine(serial_object): # Interface with LCD GUI controlled by Arduino
 
-    if ser.in_waiting > 0:
-        line = ser.readline().decode('utf-8').rstrip()    
+    if serial_object.in_waiting > 0: # --> if there is data in buffer
+        command = serial_object.readline().decode('utf-8').rstrip()    
 
-    return line # Activation code string to select either the three sub-program
+    return command # Activation code string to select either the three sub-program
 
 def sensor_interface():
     return 0
 
 def get_force_reading(gravity, force_sensor, window):
     return gravity*force_sensor.get_weight_mean(window)/1000
-
-def isotonic_training(): # Admittance Control
-    # Constructing Admittance haptic system difference equation
-    systemCoef = admittance_Constants(admittance2)
-    pos_out = systemModel_adm(systemCoef, position_output, force_input, forcesensor)
-    position_output.append(pos_out)
-    return 0
-
-def isometric_training(): # Position Control
-    return 0
 
 def diff_eq_coeff(den, freq):
     # calculates the difference equation coefficients based on 
@@ -88,9 +74,7 @@ def diff_eq_coeff(den, freq):
 
     return a_i, b_i
 
-
-
-class admittanceSystem():
+class admittance_type_haptic:
     # Not sure if the second order force to position system
     # should use OOP
 
