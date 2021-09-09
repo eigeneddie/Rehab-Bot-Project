@@ -1,6 +1,7 @@
 import numpy as np
 import serial 
 from time import sleep
+from scipy import signal
 
 def initial_diagnostics(forceSensor, distanceSensor, window): 
     # for now, just distance sensor and force sensor
@@ -66,15 +67,32 @@ def get_force_reading(gravity, force_sensor, window):
     return gravity*force_sensor.get_weight_mean(window)/1000
 
 def isotonic_training(): # Admittance Control
-
+    # Constructing Admittance haptic system difference equation
+    systemCoef = admittance_Constants(admittance2)
+    pos_out = systemModel_adm(systemCoef, position_output, force_input, forcesensor)
+    position_output.append(pos_out)
     return 0
 
 def isometric_training(): # Position Control
     return 0
 
+def diff_eq_coeff(den, freq):
+    # calculates the difference equation coefficients based on 
+    # spring and damper
+    num = 1
+    sysModel_TFs = signal.TransferFunction(num, den)
+    dt = 1/freq
+    sysModel_TFz = sysModel_TFs.to_discrete(dt, method = 'ggbt', alpha = 0.5)
+    b_i = sysModel_TFz.num
+    a_i = -sysModel_TFz.den
+
+    return a_i, b_i
+
+
+
 class admittanceSystem():
     # Not sure if the second order force to position system
     # should use OOP
-    
+
     def __init__(self):
         pass

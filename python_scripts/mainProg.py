@@ -73,12 +73,17 @@ force_in2 = 0 # [N] ---> X[n-2]
 # ===============1. FULL/SEMI ACTIVE CONSTANTS=====================
 # =================================================================
 '''
--> Difference equation second order format
+-> Difference equation first and second order format
+    y[n] = a_1*y[n-1] + b_0*x[n] + b_1*x[n-1] 
     y[n] = a_1*y[n-1] + a_2*y[n-2] + b_0*x[n] + b_1*x[n-1] + b_2*x[n-2]
 
 -> matrix format
-    [a_0, a_1, a_2]
-    [b_0, b_1, b_2]
+    [a_0, a_1, a_2, ..., a_n]
+    [b_0, b_1, b_2, ..., b_n]
+
+-> update: since the velocity of the system is very slow, inertia effects
+    is hugely negligible. We could reduce the system model into first order
+    admittance system.
 
 ''' 
 
@@ -86,33 +91,22 @@ force_in2 = 0 # [N] ---> X[n-2]
 # A. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
 # CAUTION: Transfer function is still X[m]/F[N/m]. Must be X[mm]/F[N/mm]!!
-# mass = 1 kg, damper = 1 Ns/m, spring = 5 N/m
-semiActiveConstants1 = np.array([0, 1.9989955, -0.9990005], 
-                                [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
 
-# mass = 1 kg, damper = 1 Ns/m, spring = 6 N/m
-semiActiveConstants2 = np.array([0,  1.9989945, -0.9990005], 
-                                [2.49874688e-07, 4.99749375e-07, 2.49874688e-07])
+# 
+damper1 = 10 # [N.s/mm]
+spring1 = 0.5 # [N/mm]
 
-# mass = 1 kg, damper = 1 Ns/m, spring = 10 N/m
-semiActiveConstants3 = np.array([0,  1.99899051, -0.9990005 ], 
-                                [2.49874438e-07, 4.99748877e-07, 2.49874438e-07])
-
+def strength_training_option(strength_option): 
+    # full-active training selection (position or admittance control)
+    switcher = {
+        0: spf.isotonic_training(),
+        1: spf.isometric_training()
+    }
+    switcher.get(strength_option)
 #----------------------------
 # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
 # CAUTION: Transfer function is still X[m]/F[N/m]. Must be X[mm]/F[N/mm]!!
-# mass = 1 kg, damper = 5 Ns/m, spring = 5 N/m
-fullActiveConstants1 = np.array([0, 1.99500749, -0.99501248], 
-                                [2.49376248e-07, 4.98752495e-07, 2.49376248e-07])
-
-# mass = 1 kg, damper = 1 Ns/m, spring = 5 N/m                               
-fullActiveConstants2 = np.array([0, 1.9989955, -0.9990005], 
-                                [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
-
-# mass = 1 kg, damper = 1 Ns/m, spring = 5 N/m                               
-fullActiveConstants3 = np.array([0, 1.9989955, -0.9990005], 
-                                [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
 
 
 # =================================================================
@@ -228,6 +222,12 @@ def full_active_mode(activationCode, position_output, admittance_Constants):
         outputs position). Other resistance strategies could be used such 
         as a friction model.  
     '''
+
+    # Admittance-type device algorithm (mass-spring-damper)
+    # 1. read force of the user
+    # 2. calculate the resulting position
+    # 3. send corresponding position to low level controller
+    # 4. CHANGE virtual environment STATE
     activeModeVar = activationCode[1]
     admittance2 = activationCode[2]
     stopCondition = False
@@ -242,7 +242,7 @@ def full_active_mode(activationCode, position_output, admittance_Constants):
         line = spf.serial_routine(deviceLocation) # check stop condition
         # serial_routine solution may not be right. Might change it into something
         # like an interrupt routine.
-        if line == "stop":
+        if line == "-s":
             stopCondition = True
 
 def strength_training_option(strength_option): 
@@ -321,4 +321,37 @@ if __name__=="__main__":
 # alternatives to if and elif statements: https://medium.com/swlh/3-alternatives-to-if-statements-to-make-your-python-code-more-readable-91a9991fb353
 # interrupt program by serial input, maybe: https://stackoverflow.com/questions/50566559/pythons-pyserial-with-interrupt-mode
 # serial com raspi-arduino: https://roboticsbackend.com/raspberry-pi-arduino-serial-communication/ 
-# I am yet to meet anyone who has not truly worked hard for thousands of hours in order to accomplish something great. 
+# I am yet to meet anyone who has not truly worked hard for thousands of hours in order to accomplish something great.
+# 
+# 
+# 
+'''
+This part may not be used because we could generate the difference coefficients
+prior to starting the program. 
+
+# mass = 1 kg, damper = 1 Ns/m, spring = 5 N/m
+semiActiveConstants1 = np.array([0, 1.9989955, -0.9990005], 
+                                [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
+
+# mass = 1 kg, damper = 1 Ns/m, spring = 6 N/m
+semiActiveConstants2 = np.array([0,  1.9989945, -0.9990005], 
+                                [2.49874688e-07, 4.99749375e-07, 2.49874688e-07])
+
+# mass = 1 kg, damper = 1 Ns/m, spring = 10 N/m
+semiActiveConstants3 = np.array([0,  1.99899051, -0.9990005 ], 
+                                [2.49874438e-07, 4.99748877e-07, 2.49874438e-07])
+
+
+# mass = 1 kg, damper = 5 Ns/m, spring = 5 N/m
+fullActiveConstants1 = np.array([0, 1.99500749, -0.99501248], 
+                                [2.49376248e-07, 4.98752495e-07, 2.49376248e-07])
+
+# mass = 1 kg, damper = 1 Ns/m, spring = 5 N/m                               
+fullActiveConstants2 = np.array([0, 1.9989955, -0.9990005], 
+                                [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
+
+# mass = 1 kg, damper = 1 Ns/m, spring = 5 N/m                               
+fullActiveConstants3 = np.array([0, 1.9989955, -0.9990005], 
+                                [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
+'''
+ 
