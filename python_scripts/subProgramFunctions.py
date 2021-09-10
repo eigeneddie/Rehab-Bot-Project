@@ -75,15 +75,14 @@ class admittance_type:
 
     pos_out: Latest position data
     pos_out1: Second-latest position data
-    pos_init: Current-absolute position at the begining of the 
+    pos_init: Absolute position at the Beginning of the 
               training program
-    pos_now: Current position 
+    pos_now: Current absolute position of the training program
 
-    a_i
-    b_i
+    a_i: Position term coefficient
+    b_i: Force term coefficient
     
     """
-
     def __init__(self, admittance_const, freq ):
         # Variable for storing force and position data
         self.force_data = [0]
@@ -163,4 +162,7 @@ class admittance_type:
     #------------------
     def get_current_force_reading(self):
         return self.force_in0
+    
+    def get_current_position(self):
+        return self.pos_now
         
