@@ -218,11 +218,8 @@ def isotonic_training(admittance2, force_input, position_output): # Admittance C
     sysModel = admittance_type(admittance2, freqSample)
     
     while not stopCondition:
-        force_in0 =sysModel.get_current_force_reading
-
-        pos_out = systemModel_adm(systemCoef_TF_disc, position_output, force_input, forcesensor)
-        position_output.append(pos_out)
-
+        
+        
         command = spf.serial_routine(ser_command)
         if command == "-s":
             stopCondition = True
