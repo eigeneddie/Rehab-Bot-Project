@@ -200,7 +200,7 @@ def full_active_mode(activationCode, admittance_const):
         For analogy with IMPEDANCE-type algorithm (see stanford hapkit)
         1. read position of user (compute position in counts --> to meters)
         2. calculate the resulting force
-        3, send corresponding force to motor
+        3. send corresponding force to motor
         4. change virtual environment of state
     '''
     #strength_option, serial_object, admittanceCode, 
@@ -218,8 +218,7 @@ def isotonic_training(admittance2, force_input, position_output): # Admittance C
     sysModel = admittance_type(admittance2, freqSample)
     
     while not stopCondition:
-        
-        
+
         command = spf.serial_routine(ser_command)
         if command == "-s":
             stopCondition = True
@@ -268,8 +267,6 @@ try:
                 # ====== STEP 3. RUN PROGRAM =======
                 run_rehab_program(activationCode)
                 standby_mode = False
-            
-
 
 except (KeyboardInterrupt, SystemExit):  
     # code that executes before exiting after ctrl+C  

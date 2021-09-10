@@ -27,7 +27,7 @@ class admittance_type:
     
     """
     gravity = 9.81
-    
+
     def __init__(self, 
                  admittance_const, 
                  sampling_frequency ):
@@ -119,6 +119,9 @@ class admittance_type:
     def get_current_position(self):
         return self.pos_now
 
+def control_loop():
+    return 0
+    
 def initial_diagnostics(forceSensor, distanceSensor, window): 
     # for now, just distance sensor and force sensor
     # Verify sensors are working
