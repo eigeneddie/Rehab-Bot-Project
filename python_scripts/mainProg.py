@@ -13,7 +13,7 @@
 #!/usr/bin/env python3
 
 import subProgramFunctions as spf 
-from subProgramFunctions import admittance_type_haptic
+from subProgramFunctions import admittance_type
 import RPi.GPIO as GPIO  # import GPIO
 from hx711 import HX711  # import the class HX711
 from gpiozero import DistanceSensor
@@ -214,14 +214,11 @@ def full_active_mode(activationCode, admittance_const):
 
 def isotonic_training(admittance2, force_input, position_output): # Admittance Control
     # Constructing Admittance haptic system difference equation
-    systemCoef_TF_cont = admittance2_constants(admittance2)
-    systemCoef_TF_disc = spf.diff_eq_coeff(systemCoef_TF_cont, freqSample)
-
     stopCondition = False
-    startTraining = time.time()
-
+    sysModel = admittance_type(admittance2, freqSample)
+    
     while not stopCondition:
-        force_in0 = spf.get_force_reading(gravity, force_sensor, weightMeanWindow)
+        force_in0 =sysModel.get_current_force_reading
 
         pos_out = systemModel_adm(systemCoef_TF_disc, position_output, force_input, forcesensor)
         position_output.append(pos_out)
@@ -229,9 +226,6 @@ def isotonic_training(admittance2, force_input, position_output): # Admittance C
         command = spf.serial_routine(ser_command)
         if command == "-s":
             stopCondition = True
-            endTraining = time.
-            
-
 
 def isometric_training(activationCode): # Position Control
     return 0
@@ -244,32 +238,9 @@ def admittance2_constants(admittanceCode):
         2: den_full_3,
     }
     damper_spring_pair.get(admittanceCode)
-# =================================================================
-# ====================4. HAPTIC RENDERING =========================
-# =================================================================
-
-#Haptic rendering for admittance control.'
-
-def systemModel_adm(sysCoefficient, ):
-    '''
-    -> Difference equation second order format
-        y[n] = a_1*y[n-1] + a_2*y[n-2] + b_0*x[n] + b_1*x[n-1] + b_2*x[n-2]
-
-    -> matrix format
-        [a_0, a_1, a_2]
-        [b_0, b_1, b_2]
-    '''
-    a_i = sysCoefficient[0, :]
-    b_i = sysCoefficient[1, :]
-
-    pos_term = a_i[1]*pos_out1 
-    force_term = b_i[0]*force_in0 + b_i[1]*force_in1
-    pos_out = pos_term + force_term
-
-    return pos_out
  
 # =================================================================
-# ====================5. RUNNING MAIN PROGRAM =====================
+# ====================4. RUNNING MAIN PROGRAM =====================
 # =================================================================
 
 # Running main program 
@@ -287,7 +258,6 @@ try:
         print("Step 2. System selection\n")
         sleep(2)
         print("Standby mode 1....waiting user input")
-        
         standby_mode = True
 
         while standby_mode:

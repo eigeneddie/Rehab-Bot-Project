@@ -59,29 +59,25 @@ def serial_routine(serial_object): # Interface with LCD GUI controlled by Arduin
 def sensor_interface():
     return 0
 
-def get_force_reading(gravity, force_sensor, window):
-    return gravity*force_sensor.get_weight_mean(window)/1000
-
-class admittance_type_haptic:
+class admittance_type:
     """
     admittance_type_haptic: this handles the sensor reading, calculation,
     and other stuff concerning the admittance
     
     List of local class variables:
     -------------------------------    
-    force_data 
-    position_data
+    force_data: accumulates force data from force sensor (load-cell). 
+    position_data: accumulates position data
     
-    force_in0 
-    force_in1 
-    force_in2 
-    sensorWindow
+    force_in0: Latest force reading
+    force_in1: Second-latest force reading 
+    sensorWindow: Data window for reading load-cell
 
-    pos_out 
-    pos_out1
-    pos_out2
-    pos_init
-    pos_now
+    pos_out: Latest position data
+    pos_out1: Second-latest position data
+    pos_init: Current-absolute position at the begining of the 
+              training program
+    pos_now: Current position 
 
     a_i
     b_i
@@ -89,31 +85,29 @@ class admittance_type_haptic:
     """
     gravity = 9.81 # [m/s/s]
 
-    def __init__(self, admittance_constants, freq):
+    def __init__(self, admittance_const, freq ):
         # Variable for storing force and position data
         self.force_data = []
-        self.position_data = []
+        self.position_data = [self.pos_now]
 
         # Force and position tracking variables. 
+        # First order system
         # Currently @zero IC 
         self.force_in0 = 0
         self.force_in1 = 0
-        self.force_in2 = 0
-        self.pos_out = 0
+        self.pos_out0 = 0
         self.pos_out1 = 0
-        self.pos_out2 = 0
 
         # Kinematic variable
         # Currently @zero IC
         self.pos_now = 0 
 
-    def diff_eq_coeff(self, den, freq):
         '''
-        Calculates the COEFFICIENTS for system difference equation
+        Calculating the COEFFICIENTS for system difference equation
         based on spring and damper provided
         '''
         num = 1
-        sysModel_TFs = signal.TransferFunction(num, den)
+        sysModel_TFs = signal.TransferFunction(num, admittance_const)
         dt = 1/freq
         sysModel_TFz = sysModel_TFs.to_discrete(dt, method = 'ggbt', alpha = 0.5)
         
@@ -125,6 +119,18 @@ class admittance_type_haptic:
         Read the latest force reading (F[n])
         '''
         self.force_in0 = gravity*force_sensor.get_weight_mean(self.sensorWindow)/1000
+        self.force_data.append(self.force_in0)
+
+    def calculate_position_target(self):
+        '''
+        Position calculation using difference equation.
+        Difference equation format: 
+        y[n] = a_1*y[n-1] + b_0*x[n] + b_1*x[n-1] 
+        '''
+        position_term = self.a_i[1]*self.pos_out1
+        force_term = self.b_i[0]*self.force_in0 + self.b_i[1]*self.force_in1
+        self.pos_out0 = position_term + force_term
+        self.position_data.append(self.pos_out0)
 
     def set_initial_position(self, current_distance):
         '''
@@ -146,8 +152,10 @@ class admittance_type_haptic:
         Setting the number of data reading from load cell
         '''
         self.sensorWindow = sensor_window
-
+    
+    #------------------
     # "Get" functions
+    #------------------
     def get_current_force_reading(self):
         return self.force_in0
         
