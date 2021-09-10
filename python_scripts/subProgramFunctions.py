@@ -83,11 +83,10 @@ class admittance_type:
     b_i
     
     """
-    gravity = 9.81 # [m/s/s]
 
     def __init__(self, admittance_const, freq ):
         # Variable for storing force and position data
-        self.force_data = []
+        self.force_data = [0]
         self.position_data = [self.pos_now]
 
         # Force and position tracking variables. 
@@ -120,17 +119,23 @@ class admittance_type:
         '''
         self.force_in0 = gravity*force_sensor.get_weight_mean(self.sensorWindow)/1000
         self.force_data.append(self.force_in0)
+        return self.force_in0
 
-    def calculate_position_target(self):
+    def calculate_position_target(self, force_sensor):
         '''
         Position calculation using difference equation.
         Difference equation format: 
         y[n] = a_1*y[n-1] + b_0*x[n] + b_1*x[n-1] 
         '''
+        self.force_in0 = self.new_force_reading(force_sensor)
         position_term = self.a_i[1]*self.pos_out1
         force_term = self.b_i[0]*self.force_in0 + self.b_i[1]*self.force_in1
         self.pos_out0 = position_term + force_term
         self.position_data.append(self.pos_out0)
+
+        self.force_in1 = self.force_in0
+        self.pos_out1 = self.pos_out0
+
 
     def set_initial_position(self, current_distance):
         '''
@@ -138,14 +143,14 @@ class admittance_type:
         rehabilitation system. This uses an ultrasonic sensor
         and is only called once when a sub-program is run
         '''
-        self.pos_init = current_distance
+        self.pos_init_absolute = current_distance
 
     def set_current_position(self, delta_distance):
         '''
-        Calculating current position of the slider.
-        This uses the internal encoder/hall sensor on the actuator
+        Keeping track of the current absolute position
+        This uses the internal encoder/hall sensor on the actuator.
         '''
-        self.pos_now = self.pos_init + delta_distance
+        self.pos_now = self.pos_init_absolute + delta_distance
 
     def set_force_window(self, sensor_window):
         '''
