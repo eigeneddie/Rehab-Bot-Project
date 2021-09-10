@@ -27,6 +27,7 @@ class admittance_type:
     
     """
     gravity = 9.81
+    
     def __init__(self, 
                  admittance_const, 
                  sampling_frequency ):
@@ -87,7 +88,6 @@ class admittance_type:
 
         self.force_in1 = self.force_in0
         self.pos_out1 = self.pos_out0
-
 
     def set_initial_position(self, current_distance):
         '''
