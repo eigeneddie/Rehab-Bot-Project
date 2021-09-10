@@ -2,6 +2,8 @@ import numpy as np
 import time
 from scipy import signal
 
+# Special functions
+
 class admittance_type:
     """
     admittance_type_haptic: this handles the sensor reading, calculation,
@@ -121,7 +123,7 @@ class admittance_type:
 
 def control_loop():
     return 0
-    
+
 def initial_diagnostics(forceSensor, distanceSensor, window): 
     # for now, just distance sensor and force sensor
     # Verify sensors are working
