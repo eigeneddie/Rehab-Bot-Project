@@ -13,6 +13,7 @@
 #!/usr/bin/env python3
 
 import subProgramFunctions as spf 
+from subProgramFunctions import admittance_type_haptic
 import RPi.GPIO as GPIO  # import GPIO
 from hx711 import HX711  # import the class HX711
 from gpiozero import DistanceSensor
@@ -55,23 +56,19 @@ distance_sensor = DistanceSensor(trigger, echo)
 
 # 3. Other global variables
 deviceLocation = '/dev/ttyACM0' # port in raspi
-gravity = 9.81 # [m/s/s]
 freqSample = 500 # [Hz] system operating frequency
-ser = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
-ser.flush()
+ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
+ser_command.flush()
 
-# Current slider position reading (output)
-positon_output = [] # [mm] ---> Y[n] signal output
+# save position reading (output)
+positon_output = [] # [mm] ---> y[n] signal output
 
-# Current force reading (input)
-force_input = [] # [N] ---> X[n] signal input
+# save force reading (input)
+force_input = [] # [N] ---> x[n] signal input
 
-# Past values of signals
-pos_out1 = 0 # [mm] ---> Y[n-1]
-pos_out2 = 0 # [mm] ---> Y[n-1]
-force_in0 = 0 # [N] ---> X[n]
-force_in1 = 0 # [N] ---> X[n-1]
-force_in2 = 0 # [N] ---> X[n-2]
+# signals yang lagi diolah (y[n] = output, x[n] = input)
+pos_out, pos_out1, pos_out2 = 0, 0, 0 # [mm] ---> y[n], y[n-1], y[n-2]
+force_in0, force_in1, force_in2 = 0, 0, 0 # [N] ---> x[n], x[n-1], x[n-2]
  
 # =================================================================
 # ===============1. FULL/SEMI ACTIVE CONSTANTS=====================
@@ -90,12 +87,10 @@ force_in2 = 0 # [N] ---> X[n-2]
     admittance system.
 
 ''' 
-
 #----------------------------
 # A. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
 # CAUTION: Transfer function is still X[m]/F[N/m]. Must be X[mm]/F[N/mm]!!
-
 # Option 1, 2, 3
 den_semi_1 = [10, 0.5] # [N.s/mm, N/mm]
 den_semi_2 = [1, 0.2] # [N.s/mm, N/mm]
@@ -104,8 +99,6 @@ den_semi_3 = [10, 0.5] # [N.s/mm, N/mm]
 #----------------------------
 # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
-# CAUTION: Transfer function is still X[m]/F[N/m]. Must be X[mm]/F[N/mm]!!
-
 # Option 1, 2, 3
 den_full_1 = [10, 0.5] # [N.s/mm, N/mm]
 den_full_2 = [1, 0.2] # [N.s/mm, N/mm]
@@ -115,32 +108,8 @@ den_full_3 = [10, 0.5] # [N.s/mm, N/mm]
 # ==================2. MAIN SYSTEM FUNCTIONS=======================
 # =================================================================
 
-# 1. main system program
-def main_prog(): 
-    global force_sensor, distance_sensor
-
-    # ====== STEP 1. INITIATING SYSTEM DIAGNOSTICS =======
-    print("====main program====\n ====Rehab-Bot====\n")
-    print("Step 1. Initiating system diagnostics")
-    spf.initial_diagnostics(force_sensor, distance_sensor)
-
-    while True:
-        # ====== STEP 2. SYSTEM SELECTION =======
-        print("Step 2. System selection\n")
-        sleep(2)
-        print("Standby mode 1....waiting user input")
-        # = This is the part where raspi accepts integer from arduino
-        activationCode  = spf.serial_routine(ser)
-
-        # => Run rehabilitation procedure based on 
-        #    user input through display.
-        if isinstance(activationCode, str) == True:
-            # ====== STEP 3. RUN PROGRAM =======
-            run_rehab_program(activationCode)
-            
-# 2. selection of rehabilitation mode
+# 1. selection of rehabilitation mode
 def run_rehab_program(activationCode):
-    
     prog_option = {
         1: passive_mode(activationCode),
         2: semi_active_mode(activationCode),
@@ -151,7 +120,6 @@ def run_rehab_program(activationCode):
 # =================================================================
 # ==================3. THREE MAIN PROGRAMS=========================
 # =================================================================
-
 #----------------------------
 # 1. For FULL-PASSIVE program
 #----------------------------
@@ -167,7 +135,7 @@ def full_passive_position_control():
 # 2. For SEMI-ACTIVE program
 #----------------------------
 # b. main semi-active mode/semi-assistive sub-program
-def semi_active_mode(activationCode, admittance_Constants):
+def semi_active_mode(activationCode):
     '''
     Sub-program 2: Patient semi-active treatment.
 
@@ -181,9 +149,7 @@ def semi_active_mode(activationCode, admittance_Constants):
     # Constructing Admittance haptic system difference equation
     systemCoef = admittance_Constants(admittance1)
     positionTarget = systemCoef[1]+systemCoef[2]
-#    while True:
-        #do something
-    
+
 def assistive_constants(assistiveConstCode): 
     '''
     Assistive value constants
@@ -210,7 +176,8 @@ def admittance1_constants(admittanceCode):
 # 3. For FULL-ACTIVE program
 #----------------------------
 # c. main full-active mode sub-program
-def full_active_mode(activationCode, position_output, admittance_Constants):
+
+def full_active_mode(activationCode, admittance_const):
     '''
     Sub-program 3: Patient full-active treatment.
         Patient's strength level has increased into levels
@@ -236,46 +203,35 @@ def full_active_mode(activationCode, position_output, admittance_Constants):
         3, send corresponding force to motor
         4. change virtual environment of state
     '''
-
-    activeModeVar = activationCode[1]
-    admittance2 = activationCode[2]
-    stopCondition = False
-
-    #strength_training_option(activeModeVar)
-
-    while not stopCondition:
-        # Run active mode, also add the break condition
-        line = spf.serial_routine(ser) # check stop condition
-        strength_training_option(activeModeVar, ser)
-        #get_force_reading(gravity, force_sensor, window)
-
-        
-        # serial_routine solution may not be right. Might change it into something
-        # like an interrupt routine.
-        if line == "-s":
-            stopCondition = True
-
-def strength_training_option(strength_option): 
+    #strength_option, serial_object, admittanceCode, 
+    #                         force_input, position_output, force_sensor): 
     # full-active training selection (position or admittance control)
-    full_active_subProg = {
-        0: isotonic_training(),
-        1: isometric_training()
+    strength_training_option = {
+        0: isotonic_training(activationCode, admittance_const),
+        1: isometric_training(activationCode)
     }
-    full_active_subProg.get(strength_option)
+    strength_training_option.get(activationCode[0])
 
-def isotonic_training(admittance2): # Admittance Control
+def isotonic_training(admittance2, force_input, position_output): # Admittance Control
     # Constructing Admittance haptic system difference equation
     systemCoef_TF_cont = admittance2_constants(admittance2)
     systemCoef_TF_disc = spf.diff_eq_coeff(systemCoef_TF_cont, freqSample)
 
-    while True:
+    stopCondition = False
+    
+    while not stopCondition:
+        force_in0 = spf.get_force_reading(gravity, force_sensor, weightMeanWindow)
 
         pos_out = systemModel_adm(systemCoef_TF_disc, position_output, force_input, forcesensor)
         position_output.append(pos_out)
 
+        command = spf.serial_routine(ser_command)
+        if command == "-s":
+            stopCondition = True
+            
     return 0
 
-def isometric_training(): # Position Control
+def isometric_training(activationCode): # Position Control
     return 0
 
 def admittance2_constants(admittanceCode): 
@@ -292,7 +248,7 @@ def admittance2_constants(admittanceCode):
 
 #Haptic rendering for admittance control.'
 
-def systemModel_adm(sysCoefficient, force_input, forcesensor):
+def systemModel_adm(sysCoefficient, ):
     '''
     -> Difference equation second order format
         y[n] = a_1*y[n-1] + a_2*y[n-2] + b_0*x[n] + b_1*x[n-1] + b_2*x[n-2]
@@ -317,8 +273,35 @@ def systemModel_adm(sysCoefficient, force_input, forcesensor):
 # Running main program 
 try:  
     # main loop of program 
-    main_prog()
-    
+    # main_prog()
+    # ====== STEP 1. INITIATING SYSTEM DIAGNOSTICS =======
+    # run once
+    print("====main program====\n ====Rehab-Bot====\n")
+    print("Step 1. Initiating system diagnostics")
+    spf.initial_diagnostics(force_sensor, distance_sensor)
+
+    while True:
+        # ====== STEP 2. SYSTEM SELECTION =======
+        print("Step 2. System selection\n")
+        sleep(2)
+        print("Standby mode 1....waiting user input")
+        
+        standby_mode = True
+
+        while standby_mode:
+
+            # = This is the part where raspi accepts integer from arduino
+            activationCode  = spf.serial_routine(ser_command)
+
+            # => Run rehabilitation procedure based on 
+            #    user input through display.
+            if isinstance(activationCode, str) == True and (not activationCode =="-s"):
+                # ====== STEP 3. RUN PROGRAM =======
+                run_rehab_program(activationCode)
+                standby_mode = False
+            
+
+
 except (KeyboardInterrupt, SystemExit):  
     # code that executes before exiting after ctrl+C  
     print ("Bye!\n")
@@ -326,7 +309,7 @@ except (KeyboardInterrupt, SystemExit):
   
 finally:  
     GPIO.cleanup() # this ensures a clean exit  
-    print("shutting down...")
+    print("shutting program down...")
     sleep(2)
 
 ''' if program is succesfull, we run program using these lines (maybe?)

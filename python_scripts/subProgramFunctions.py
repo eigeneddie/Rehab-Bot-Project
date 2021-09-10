@@ -62,21 +62,51 @@ def sensor_interface():
 def get_force_reading(gravity, force_sensor, window):
     return gravity*force_sensor.get_weight_mean(window)/1000
 
-def diff_eq_coeff(den, freq):
-    # calculates the difference equation coefficients based on 
-    # spring and damper
-    num = 1
-    sysModel_TFs = signal.TransferFunction(num, den)
-    dt = 1/freq
-    sysModel_TFz = sysModel_TFs.to_discrete(dt, method = 'ggbt', alpha = 0.5)
-    b_i = sysModel_TFz.num
-    a_i = -sysModel_TFz.den
-
-    return a_i, b_i
-
 class admittance_type_haptic:
-    # Not sure if the second order force to position system
-    # should use OOP
+    """
+    admittance_type_haptic: this handles the sensor reading, calculation,
+    and other stuff concerning the admittance
+    """
+    gravity = 9.81 # [m/s/s]
+    force_data = []
+    position_data = []
 
-    def __init__(self):
-        pass
+    def __init__(self, admittance_constants, freq, ):
+        # System constants
+        [self.a_i, self.b_i] = self.diff_eq_coeff(admittance_constants, freq)
+        
+        # Force and position tracking variables
+        self.force_in0 = 0
+        self.force_in1 = 0
+        self.force_in2 = 0
+        self.pos_out = 0
+        self.pos_out1 = 0
+        self.pos_out2 = 0
+
+        # Kinematic variable
+        self.pos_now = 0 
+
+    def new_force_reading(self, gravity, force_sensor, window):
+        self.force_in0 = gravity*force_sensor.get_weight_mean(window)/1000
+        return self.force_in0
+    
+    def set_initial_position(self, current_distance):
+        self.pos_init = current_distance
+
+    def set_current_position(self, delta_distance):
+        self.pos_now = self.pos_init + delta_distance
+
+    def set_force_window(self, sensor_window):
+        self.sensorWindow = sensor_window
+
+    def diff_eq_coeff(self, den, freq):
+        # calculates the difference equation coefficients based on 
+        # spring and damper
+        num = 1
+        sysModel_TFs = signal.TransferFunction(num, den)
+        dt = 1/freq
+        sysModel_TFz = sysModel_TFs.to_discrete(dt, method = 'ggbt', alpha = 0.5)
+        b_i = sysModel_TFz.num
+        a_i = -sysModel_TFz.den
+        return a_i, b_i
+        
