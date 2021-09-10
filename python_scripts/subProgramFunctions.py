@@ -1,5 +1,5 @@
 import numpy as np
-from time import sleep
+import time
 from scipy import signal
 
 def initial_diagnostics(forceSensor, distanceSensor, window): 
@@ -32,7 +32,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
     print("current weight: " + forceSensor.get_weight_mean(window) + "grams")
     print(" ")
     print("Standing by...")
-    sleep(2) # standing by
+    time.sleep(2) # standing by
 
     # b. Distance sensor (HC-SR04 ultrasonic)
     print("====2. Setting up Distance Sensor!======")
@@ -66,16 +66,36 @@ class admittance_type_haptic:
     """
     admittance_type_haptic: this handles the sensor reading, calculation,
     and other stuff concerning the admittance
+    
+    List of local class variables:
+    -------------------------------    
+    force_data 
+    position_data
+    
+    force_in0 
+    force_in1 
+    force_in2 
+    sensorWindow
+
+    pos_out 
+    pos_out1
+    pos_out2
+    pos_init
+    pos_now
+
+    a_i
+    b_i
+    
     """
     gravity = 9.81 # [m/s/s]
-    force_data = []
-    position_data = []
 
-    def __init__(self, admittance_constants, freq, ):
-        # System constants
-        [self.a_i, self.b_i] = self.diff_eq_coeff(admittance_constants, freq)
-        
-        # Force and position tracking variables
+    def __init__(self, admittance_constants, freq):
+        # Variable for storing force and position data
+        self.force_data = []
+        self.position_data = []
+
+        # Force and position tracking variables. 
+        # Currently @zero IC 
         self.force_in0 = 0
         self.force_in1 = 0
         self.force_in2 = 0
@@ -84,29 +104,50 @@ class admittance_type_haptic:
         self.pos_out2 = 0
 
         # Kinematic variable
+        # Currently @zero IC
         self.pos_now = 0 
 
-    def new_force_reading(self, gravity, force_sensor, window):
-        self.force_in0 = gravity*force_sensor.get_weight_mean(window)/1000
-        return self.force_in0
-    
-    def set_initial_position(self, current_distance):
-        self.pos_init = current_distance
-
-    def set_current_position(self, delta_distance):
-        self.pos_now = self.pos_init + delta_distance
-
-    def set_force_window(self, sensor_window):
-        self.sensorWindow = sensor_window
-
     def diff_eq_coeff(self, den, freq):
-        # calculates the difference equation coefficients based on 
-        # spring and damper
+        '''
+        Calculates the COEFFICIENTS for system difference equation
+        based on spring and damper provided
+        '''
         num = 1
         sysModel_TFs = signal.TransferFunction(num, den)
         dt = 1/freq
         sysModel_TFz = sysModel_TFs.to_discrete(dt, method = 'ggbt', alpha = 0.5)
-        b_i = sysModel_TFz.num
-        a_i = -sysModel_TFz.den
-        return a_i, b_i
+        
+        self.b_i = sysModel_TFz.num
+        self.a_i = -sysModel_TFz.den
+
+    def new_force_reading(self, gravity, force_sensor):
+        '''
+        Read the latest force reading (F[n])
+        '''
+        self.force_in0 = gravity*force_sensor.get_weight_mean(self.sensorWindow)/1000
+
+    def set_initial_position(self, current_distance):
+        '''
+        Reading the current distance of slider in the 
+        rehabilitation system. This uses an ultrasonic sensor
+        and is only called once when a sub-program is run
+        '''
+        self.pos_init = current_distance
+
+    def set_current_position(self, delta_distance):
+        '''
+        Calculating current position of the slider.
+        This uses the internal encoder/hall sensor on the actuator
+        '''
+        self.pos_now = self.pos_init + delta_distance
+
+    def set_force_window(self, sensor_window):
+        '''
+        Setting the number of data reading from load cell
+        '''
+        self.sensorWindow = sensor_window
+
+    # "Get" functions
+    def get_current_force_reading(self):
+        return self.force_in0
         

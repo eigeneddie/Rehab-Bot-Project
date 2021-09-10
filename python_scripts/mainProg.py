@@ -218,7 +218,8 @@ def isotonic_training(admittance2, force_input, position_output): # Admittance C
     systemCoef_TF_disc = spf.diff_eq_coeff(systemCoef_TF_cont, freqSample)
 
     stopCondition = False
-    
+    startTraining = time.time()
+
     while not stopCondition:
         force_in0 = spf.get_force_reading(gravity, force_sensor, weightMeanWindow)
 
@@ -228,8 +229,9 @@ def isotonic_training(admittance2, force_input, position_output): # Admittance C
         command = spf.serial_routine(ser_command)
         if command == "-s":
             stopCondition = True
+            endTraining = time.
             
-    return 0
+
 
 def isometric_training(activationCode): # Position Control
     return 0
