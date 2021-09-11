@@ -2,30 +2,29 @@ import numpy as np
 import time
 from scipy import signal
 
-# Special functions
+# Complimentary functions for the mainProg script
 
 class admittance_type:
     """
     admittance_type_haptic: this handles the sensor reading, calculation,
     and other stuff concerning the admittance
-    
+    ===============================
     List of local class variables:
-    -------------------------------    
-    force_data: accumulates force data from force sensor (load-cell). 
-    position_data: accumulates position data
-    
-    force_in0: Latest force reading
-    force_in1: Second-latest force reading 
-    sensorWindow: Data window for reading load-cell
-
-    pos_out: Latest position data
-    pos_out1: Second-latest position data
-    pos_init: Absolute position at the Beginning of the 
-              training program
-    pos_now: Current absolute position of the training program
-
-    a_i: Position term coefficient
-    b_i: Force term coefficient
+    ===============================   
+        force_data [N]: accumulates force data from force sensor (load-cell). 
+        position_data [mm]: accumulates position data
+        force_in0 [N]: Latest force reading
+        force_in1 [N]: Second-latest force reading 
+        sensorWindow [#data]: Data window for reading load-cell
+        --------------------------------------------------------
+        pos_out [mm]: Latest position data
+        pos_out1 [mm]: Second-latest position data
+        pos_init [mm]: Absolute position at the Beginning of the 
+                  training program
+        pos_now [mm]: Current absolute position of the training program
+        ---------------------------------------------------------
+        a_i []: Position term coefficient
+        b_i [mm/N]: Force term coefficient
     
     """
     gravity = 9.81
@@ -71,8 +70,11 @@ class admittance_type:
     def new_force_reading(self, force_sensor):
         '''
         Read the latest force reading (F[n])
+
+        Args:  
+            force_sensor [N]: force sensor object using HX711 library
         '''
-        self.force_in0 = 9.81*force_sensor.get_weight_mean(self.sensorWindow)/1000
+        self.force_in0 = self.gravity*force_sensor.get_weight_mean(self.sensorWindow)/1000
         self.force_data.append(self.force_in0)
         return self.force_in0
 
@@ -80,35 +82,50 @@ class admittance_type:
         '''
         Position calculation using difference equation.
         Difference equation format: 
-        y[n] = a_1*y[n-1] + b_0*x[n] + b_1*x[n-1] 
+        y[n] = a_1*y[n-1] + b_0*x[n] + b_1*x[n-1]
+
+        Args:
+            force_sensor [N]: sensor reading from HX711 that   
+                              processes the load-cell 
         '''
         self.force_in0 = self.new_force_reading(force_sensor)
+        self.force_data.append(self.force_in0)
         position_term = self.a_i[1]*self.pos_out1
         force_term = self.b_i[0]*self.force_in0 + self.b_i[1]*self.force_in1
         self.pos_out0 = position_term + force_term
-        self.position_data.append(self.pos_out0)
+        self.position_data.append(self.pos_out0) # FLAG
 
         self.force_in1 = self.force_in0
         self.pos_out1 = self.pos_out0
 
-    def set_initial_position(self, current_distance):
+    def set_initial_position(self, distance_sensor):
         '''
         Reading the current distance of slider in the 
         rehabilitation system. This uses an ultrasonic sensor
         and is only called once when a sub-program is run
+
+        Args:
+            current_distance [mm]: sensor reading of slider position
+                                   from ULTRASONIC sensor
         '''
-        self.pos_init_absolute = current_distance
+        self.pos_init_absolute = distance_sensor
 
     def set_current_position(self, delta_distance):
         '''
-        Keeping track of the current absolute position
+        Track current absolute position.
         This uses the internal encoder/hall sensor on the actuator.
+
+        Args: 
+            delta_distance [mm]: data from position sensor (encoder/hall)
         '''
         self.pos_now = self.pos_init_absolute + delta_distance
 
     def set_force_window(self, sensor_window):
         '''
         Setting the number of data reading from load cell
+
+        Args: 
+            sensor_window []: data size to look at sensor reading
         '''
         self.sensorWindow = sensor_window
     
@@ -122,6 +139,14 @@ class admittance_type:
         return self.pos_now
 
 def control_loop():
+    '''
+    ADMITTANCE-type device algorithm (mass-spring-damper)
+        1. read force of the user
+        2. calculate the resulting position
+        3. send corresponding position to low level controller
+        4. CHANGE virtual environment STATE    
+    '''
+
     return 0
 
 def initial_diagnostics(forceSensor, distanceSensor, window): 

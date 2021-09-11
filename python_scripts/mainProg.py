@@ -207,15 +207,17 @@ def full_active_mode(activationCode, admittance_const):
     #                         force_input, position_output, force_sensor): 
     # full-active training selection (position or admittance control)
     strength_training_option = {
-        0: isotonic_training(activationCode, admittance_const),
+        0: isotonic_training(activationCode),
         1: isometric_training(activationCode)
     }
-    strength_training_option.get(activationCode[0])
+    strength_training_option.get(activationCode[1])
 
-def isotonic_training(admittance2, force_input, position_output): # Admittance Control
+def isotonic_training(activationCode): # Admittance Control
     # Constructing Admittance haptic system difference equation
     stopCondition = False
-    sysModel = admittance_type(admittance2, freqSample)
+    damper_spring = admittance2_constants(activationCode[2])
+    sysModel = admittance_type(damper_spring, freqSample)
+    
     
     while not stopCondition:
 
@@ -297,35 +299,3 @@ if __name__=="__main__":
 # serial com raspi-arduino: https://roboticsbackend.com/raspberry-pi-arduino-serial-communication/ 
 # I am yet to meet anyone who has not truly worked hard for thousands of hours in order to accomplish something great.
 # 
-# 
-# 
-'''
-This part may not be used because we could generate the difference coefficients
-prior to starting the program. 
-
-# mass = 1 kg, damper = 1 Ns/m, spring = 5 N/m
-semiActiveConstants1 = np.array([0, 1.9989955, -0.9990005], 
-                                [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
-
-# mass = 1 kg, damper = 1 Ns/m, spring = 6 N/m
-semiActiveConstants2 = np.array([0,  1.9989945, -0.9990005], 
-                                [2.49874688e-07, 4.99749375e-07, 2.49874688e-07])
-
-# mass = 1 kg, damper = 1 Ns/m, spring = 10 N/m
-semiActiveConstants3 = np.array([0,  1.99899051, -0.9990005 ], 
-                                [2.49874438e-07, 4.99748877e-07, 2.49874438e-07])
-
-
-# mass = 1 kg, damper = 5 Ns/m, spring = 5 N/m
-fullActiveConstants1 = np.array([0, 1.99500749, -0.99501248], 
-                                [2.49376248e-07, 4.98752495e-07, 2.49376248e-07])
-
-# mass = 1 kg, damper = 1 Ns/m, spring = 5 N/m                               
-fullActiveConstants2 = np.array([0, 1.9989955, -0.9990005], 
-                                [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
-
-# mass = 1 kg, damper = 1 Ns/m, spring = 5 N/m                               
-fullActiveConstants3 = np.array([0, 1.9989955, -0.9990005], 
-                                [2.49874750e-07, 4.99749501e-07, 2.49874750e-07])
-'''
- 
