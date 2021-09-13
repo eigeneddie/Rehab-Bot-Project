@@ -7,12 +7,12 @@ from scipy import signal
 class admittance_type:
     """
     admittance_type_haptic: this class stores the property of the admittance
-    dynamics such as calculating the target output state, store states in time, 
-    sensor reading, etc. 
+    environment system dynamics and its accompanying routines such as calculating 
+    the target output state, store states in time, sensor reading, etc. 
         ===============================
         List of local class variables:
         ===============================   
-            force_data [N]: accumulates force data from force sensor (load-cell). 
+            force_data [N]: accumulates force data from force sensor (load cell). 
             position_data [mm]: accumulates position data
             force_in0 [N]: Latest force reading
             force_in1 [N]: Second-latest force reading 
@@ -21,7 +21,10 @@ class admittance_type:
             pos_out [mm]: Latest position data
             pos_out1 [mm]: Second-latest position data
             pos_init [mm]: Absolute position at the Beginning of the 
-                      training program
+                           training program (due to the circumstance at 
+                           the time of working on this project, I am 
+                           unable to use an absolute encoder. An absolute encoder
+                           might omit the use of this part of the class)
             pos_now [mm]: Current absolute position of the training program
             ---------------------------------------------------------
             a_i []: Position term coefficient
@@ -131,6 +134,12 @@ class admittance_type:
             '''
         self.sensorWindow = sensor_window
     
+    #------------------------------------------------------
+    # Application specific functions (assistive training)
+    #------------------------------------------------------
+
+    # code here
+
     #------------------
     # "Get" functions
     #------------------
@@ -154,7 +163,8 @@ def control_loop(sysModel, sensor_input):
 
     # Step 3 & 4
     sysModel.set_current_position(sysModel.pos_out0)
-    command_actuator(sysModel)
+    sysModel_n = sysModel
+    return sysModel_n
 
 def command_actuator(system_admittance):
     '''

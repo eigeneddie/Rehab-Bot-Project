@@ -21,7 +21,6 @@ from gpiozero import DistanceSensor
 import numpy as np
 import serial
 import time
-from time import sleep
 import pandas as pd
 
 # =================================================================
@@ -198,21 +197,32 @@ def full_active_mode(activationCode, admittance_const):
     }
     strength_training_option.get(activationCode[1])
 
-def isotonic_training(activationCode): # Admittance Control
-    # Constructing Admittance haptic system difference equation
+def isotonic_training(activationCode): 
+    ''' 
+    Full active-strength exercise-isotonic training
+        Constructing Admittance haptic system difference equation for
+        resistance training.
+
+        Args:
+            activationCode [str]: activation string to determine which damper_spring 
+                                  system to be used in the admittance system.
+    '''
     stopCondition = False
-    damper_spring = admittance2_constants(activationCode[2])
-    sysModel = admittance_type(damper_spring, freqSample)
+    damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
+    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
     sysModel.set_force_window(weightMeanWindow)
 
     while not stopCondition:
         start_loop = time.time()
-        sysModel_n = spf.control_loop(sysModel, force_sensor)
-        spf.command_actuator(sysModel_n)
-        time.sleep(sample_period - ((time.time()-start_loop)%sample_period))
-        command = spf.serial_routine(ser_command)
+        sysModel_n = spf.control_loop(sysModel, force_sensor) # Output system @ latest state
+        spf.command_actuator(sysModel_n) # send command to actuator
         
+        # this time library attempts to make the system sampling frequency
+        # consistent at about "freqSample"
+        time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
+        command = spf.serial_routine(ser_command)
+
         if command == "-s":
             stopCondition = True
 
@@ -246,7 +256,7 @@ if __name__=="__main__":
         while True:
             # ====== STEP 2. SYSTEM SELECTION =======
             print("Step 2. System selection\n")
-            sleep(2)
+            time.sleep(2)
             print("Standby mode 1....waiting user input")
             standby_mode = True
 
@@ -265,12 +275,12 @@ if __name__=="__main__":
     except (KeyboardInterrupt, SystemExit):  
         # code that executes before exiting after ctrl+C  
         print ("Bye!\n")
-        sleep(1)
+        time.sleep(1)
     
     finally:  
         GPIO.cleanup() # this ensures a clean exit  
         print("shutting program down...")
-        sleep(2)
+        time.sleep(2)
 
 ''' if program is succesfull, we run program using these lines (maybe?)
 if __name__=="__main__":
