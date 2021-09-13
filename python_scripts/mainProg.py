@@ -20,7 +20,6 @@ from gpiozero import DistanceSensor
 
 import numpy as np
 import serial
-import os
 import time
 from time import sleep
 import pandas as pd
@@ -57,19 +56,10 @@ distance_sensor = DistanceSensor(trigger, echo)
 # 3. Other global variables
 deviceLocation = '/dev/ttyACM0' # port in raspi
 freqSample = 500 # [Hz] system operating frequency
+sample_period = 1/freqSample
 ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
 ser_command.flush()
 
-# save position reading (output)
-positon_output = [] # [mm] ---> y[n] signal output
-
-# save force reading (input)
-force_input = [] # [N] ---> x[n] signal input
-
-# signals yang lagi diolah (y[n] = output, x[n] = input)
-pos_out, pos_out1, pos_out2 = 0, 0, 0 # [mm] ---> y[n], y[n-1], y[n-2]
-force_in0, force_in1, force_in2 = 0, 0, 0 # [N] ---> x[n], x[n-1], x[n-2]
- 
 # =================================================================
 # ===============1. FULL/SEMI ACTIVE CONSTANTS=====================
 # =================================================================
@@ -85,7 +75,6 @@ force_in0, force_in1, force_in2 = 0, 0, 0 # [N] ---> x[n], x[n-1], x[n-2]
 -> update: since the velocity of the system is very slow, inertia effects
     is hugely negligible. We could reduce the system model into first order
     admittance system.
-
 ''' 
 #----------------------------
 # A. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS
@@ -136,9 +125,7 @@ def full_passive_position_control():
 #----------------------------
 # b. main semi-active mode/semi-assistive sub-program
 def semi_active_mode(activationCode):
-    '''
-    Sub-program 2: Patient semi-active treatment.
-
+    '''Sub-program 2: Patient semi-active treatment.
         The resistance of this rehabilitation training strategy uses
         haptic rendering of an admittance environment (inputs force, 
         outputs position). Other resistance strategies could be used such 
@@ -151,9 +138,8 @@ def semi_active_mode(activationCode):
     positionTarget = systemCoef[1]+systemCoef[2]
 
 def assistive_constants(assistiveConstCode): 
-    '''
-    Assistive value constants
-    values are still placeholders
+    '''Assistive value constants
+        values are still placeholders
     '''
     assist_const = {
         0: 50, # [ ] unit not decided
@@ -163,8 +149,9 @@ def assistive_constants(assistiveConstCode):
     assist_const.get(assistiveConstCode)
 
 def admittance1_constants(admittanceCode): 
-    # Spring, mass, damper constants selection (Three options)
-    # 
+    '''Spring, mass, damper constants selection (Three options)
+
+    '''
     damper_spring_pair = {
         0: den_semi_1, 
         1: den_semi_2,
@@ -178,8 +165,7 @@ def admittance1_constants(admittanceCode):
 # c. main full-active mode sub-program
 
 def full_active_mode(activationCode, admittance_const):
-    '''
-    Sub-program 3: Patient full-active treatment.
+    '''Sub-program 3: Patient full-active treatment.
         Patient's strength level has increased into levels
         where they could start actively train their muscle strength.
 
@@ -217,11 +203,16 @@ def isotonic_training(activationCode): # Admittance Control
     stopCondition = False
     damper_spring = admittance2_constants(activationCode[2])
     sysModel = admittance_type(damper_spring, freqSample)
-    
-    
-    while not stopCondition:
+    sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
+    sysModel.set_force_window(weightMeanWindow)
 
+    while not stopCondition:
+        start_loop = time.time()
+        sysModel_n = spf.control_loop(sysModel, force_sensor)
+        spf.command_actuator(sysModel_n)
+        time.sleep(sample_period - ((time.time()-start_loop)%sample_period))
         command = spf.serial_routine(ser_command)
+        
         if command == "-s":
             stopCondition = True
 
@@ -242,43 +233,44 @@ def admittance2_constants(admittanceCode):
 # =================================================================
 
 # Running main program 
-try:  
-    # main loop of program 
-    # main_prog()
-    # ====== STEP 1. INITIATING SYSTEM DIAGNOSTICS =======
-    # run once
-    print("====main program====\n ====Rehab-Bot====\n")
-    print("Step 1. Initiating system diagnostics")
-    spf.initial_diagnostics(force_sensor, distance_sensor)
+if __name__=="__main__":
+    try:  
+        # main loop of program 
+        # main_prog()
+        # ====== STEP 1. INITIATING SYSTEM DIAGNOSTICS =======
+        # run once
+        print("====main program====\n ====Rehab-Bot====\n")
+        print("Step 1. Initiating system diagnostics")
+        spf.initial_diagnostics(force_sensor, distance_sensor)
 
-    while True:
-        # ====== STEP 2. SYSTEM SELECTION =======
-        print("Step 2. System selection\n")
+        while True:
+            # ====== STEP 2. SYSTEM SELECTION =======
+            print("Step 2. System selection\n")
+            sleep(2)
+            print("Standby mode 1....waiting user input")
+            standby_mode = True
+
+            while standby_mode:
+
+                # = This is the part where raspi accepts integer from arduino
+                activationCode  = spf.serial_routine(ser_command)
+
+                # => Run rehabilitation procedure based on 
+                #    user input through display.
+                if isinstance(activationCode, str) == True and (not activationCode =="-s"):
+                    # ====== STEP 3. RUN PROGRAM =======
+                    run_rehab_program(activationCode)
+                    standby_mode = False
+
+    except (KeyboardInterrupt, SystemExit):  
+        # code that executes before exiting after ctrl+C  
+        print ("Bye!\n")
+        sleep(1)
+    
+    finally:  
+        GPIO.cleanup() # this ensures a clean exit  
+        print("shutting program down...")
         sleep(2)
-        print("Standby mode 1....waiting user input")
-        standby_mode = True
-
-        while standby_mode:
-
-            # = This is the part where raspi accepts integer from arduino
-            activationCode  = spf.serial_routine(ser_command)
-
-            # => Run rehabilitation procedure based on 
-            #    user input through display.
-            if isinstance(activationCode, str) == True and (not activationCode =="-s"):
-                # ====== STEP 3. RUN PROGRAM =======
-                run_rehab_program(activationCode)
-                standby_mode = False
-
-except (KeyboardInterrupt, SystemExit):  
-    # code that executes before exiting after ctrl+C  
-    print ("Bye!\n")
-    sleep(1)
-  
-finally:  
-    GPIO.cleanup() # this ensures a clean exit  
-    print("shutting program down...")
-    sleep(2)
 
 ''' if program is succesfull, we run program using these lines (maybe?)
 if __name__=="__main__":
