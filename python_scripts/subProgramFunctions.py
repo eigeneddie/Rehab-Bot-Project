@@ -149,13 +149,14 @@ class admittance_type:
     def get_current_position(self):
         return self.pos_now
 
-def control_loop(sysModel, sensor_input):
+def haptic_rendering(sysModel, sensor_input):
     '''
     ADMITTANCE-type device algorithm (mass-spring-damper)
         1. read force of the user
         2. calculate the resulting position
         3. send corresponding position to low level controller
-            (iow, send how much delta position the motor must move)
+            (in other words, send how much 
+            delta position the motor must move)
         4. CHANGE virtual environment STATE    
     '''
     # Step 1 & 2

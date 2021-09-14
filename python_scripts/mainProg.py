@@ -124,17 +124,33 @@ def full_passive_position_control():
 #----------------------------
 # b. main semi-active mode/semi-assistive sub-program
 def semi_active_mode(activationCode):
-    '''Sub-program 2: Patient semi-active treatment.
-        The resistance of this rehabilitation training strategy uses
-        haptic rendering of an admittance environment (inputs force, 
-        outputs position). Other resistance strategies could be used such 
-        as a friction model.  
+    ''' 
+    Semi active-strength exercise
+        Constructing Admittance haptic system difference equation for
+        ASSISTED resistance training.
+
+        Args:
+            activationCode [str]: activation string to determine which damper_spring 
+                                  system to be used in the admittance system.
     '''
-    assistConst = activationCode[1]
-    admittance1 = activationCode[2]
-    # Constructing Admittance haptic system difference equation
-    systemCoef = admittance_Constants(admittance1)
-    positionTarget = systemCoef[1]+systemCoef[2]
+    stopCondition = False
+    assist_level = assistive_constants(activationCode[1]) # assign assistive level of machine
+    damper_spring = admittance1_constants(activationCode[2]) # assign which damper-spring system
+    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
+    sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
+    sysModel.set_force_window(weightMeanWindow)
+
+    while not stopCondition:
+        start_loop = time.time()
+        sysModel_n = spf.haptic_rendering(sysModel, force_sensor) # Output system @ latest state
+        spf.command_actuator(sysModel_n) # send command to actuator
+        
+        # this time library attempts to make the system sampling frequency
+        # consistent at about "freqSample"
+        command = spf.serial_routine(ser_command)
+        time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
+        if command == "-s":
+            stopCondition = True
 
 def assistive_constants(assistiveConstCode): 
     '''Assistive value constants
@@ -215,7 +231,7 @@ def isotonic_training(activationCode):
 
     while not stopCondition:
         start_loop = time.time()
-        sysModel_n = spf.control_loop(sysModel, force_sensor) # Output system @ latest state
+        sysModel_n = spf.haptic_rendering(sysModel, force_sensor) # Output system @ latest state
         spf.command_actuator(sysModel_n) # send command to actuator
         
         # this time library attempts to make the system sampling frequency
