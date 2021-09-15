@@ -1,7 +1,7 @@
 import numpy as np
 import time
 from scipy import signal
-
+import RPi.GPIO as GPIO 
 # Complimentary functions for the mainProg script
 
 class admittance_type:
@@ -189,31 +189,32 @@ def command_actuator(system_admittance):
 def initial_diagnostics(forceSensor, distanceSensor, window): 
     # for now, just distance sensor and force sensor
     # Verify sensors are working
-
+    GPIO.setmode(GPIO.BCM)
     # a. Force sensor
     print("====1. Setting up Load Cell!======")
-    err = False
-    read_bool = False
+    err = True
+    err_read_bool = True
 
     # check if load cell reading is successful
-    while not (err and read_bool):
+    while err and err_read_bool:
         err = forceSensor.zero()
-        if err == False:
-            raise ValueError('Tare is unsuccessful. Retrying')
+        if err == True:
+            print('Tare is unsuccessful. Retrying')#raise ValueError('Tare is unsuccessful. Retrying')
         else:
             print('Tare successful!')
         
         reading = forceSensor.get_raw_data_mean()
         if reading:
             #okay
-            read_bool = True
+            err_read_bool = False
         else:
             print('invalid data, retrying')
         
-        if (err and read_bool) == True:
-            print("-Load cell NOMINAL\n")     
-
-    print("current weight: " + forceSensor.get_weight_mean(window) + "grams")
+        if (err and err_read_bool) == False:
+            print("-Load cell NOMINAL\n")
+            
+            
+    print("current weight: ",forceSensor.get_weight_mean(window), " grams")
     print(" ")
     print("Standing by...")
     time.sleep(2) # standing by
@@ -226,8 +227,9 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
         print("testing distance sensor")
         dist_okay = isinstance(distanceSensor.distance, float)
 
-    if dist_okay == True:
-        print('-Distance sensor NOMINAL\n')
+        if dist_okay == True:
+            print('-Distance sensor NOMINAL\n')
+        print(dist_okay)
 
     #=====================================================
     print("\n")
