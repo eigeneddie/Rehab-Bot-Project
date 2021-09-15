@@ -1,6 +1,6 @@
 /* Rehabilitation Machine display script
  *  
- *  copyright(c) 2021 Edgar B. Sutawika
+ *  created by Edgar B. Sutawika
  *  
  *  Rehabilitation project for lower extremity stroke patients.
  *  
@@ -9,7 +9,6 @@
  *  SPFD5408 library by Joao Lopes
  *  Template following Henning Karlsen from HowToMechatronics
  *  
- *  MIT license
  ============= ==========*/
 
  /*
@@ -310,7 +309,7 @@ void semiActiveModeMenu(TSPoint p){
           exeCodeSemiActive[1] = assistConst;
           exeCodeSemiActive[2] = admittance1;
           activationCode = generateActivationCodeString(exeCodeSemiActive[0],exeCodeSemiActive[1],exeCodeSemiActive[2]);
-          Serial.println( activationCode);
+          Serial.println(activationCode);
         }
         if ((p.x > 25) && (p.x < 88) && (p.y > 17 ) && (p.y < 45)){
 
@@ -318,6 +317,7 @@ void semiActiveModeMenu(TSPoint p){
             startButton();
             stopButtonENGAGED();
             activation_semi_active = false;
+            Serial.println("-s");
             delay(200);
             stopButton();          
           }
@@ -395,6 +395,7 @@ void fullActiveModeMenu(TSPoint p){
             startButton();
             stopButtonENGAGED();
             activation_full_active = false;
+            Serial.println("-s");
             delay(200);
             stopButton();          
           }

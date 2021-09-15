@@ -36,7 +36,7 @@ class admittance_type:
 
     def __init__(self, 
                  admittance_const, 
-                 sampling_frequency ):
+                 sampling_frequency):
         '''
         Init a new instance of admittance environment
 
@@ -91,6 +91,10 @@ class admittance_type:
             Difference equation format: 
             y[n] = a_1*y[n-1] + b_0*x[n] + b_1*x[n-1]
 
+            in admittance term:
+            X[n] = a_1*X[n-1] + b_0*F[n] + b_1*F[n-1]
+            where X: position, F: force
+
             Args:
                 force_sensor [N]: sensor reading from HX711 that   
                                   processes the load-cell 
@@ -134,6 +138,27 @@ class admittance_type:
             '''
         self.sensorWindow = sensor_window
     
+    def haptic_rendering(self, sysModel, sensor_input):
+        '''
+        ADMITTANCE-type device algorithm (mass-spring-damper)
+            1. read force of the user
+            2. calculate the resulting position
+            3. send corresponding position to low level controller
+                (in other words, send how much 
+                delta position the motor must move)
+            4. CHANGE virtual environment STATE 
+
+            Args:
+                sysModel [sys (mm)]: system model
+                sensor_input [sensor (N)]: sensor object as the input of the system   
+        '''
+        # Step 1 & 2
+        sysModel.calculate_position_target(sensor_input)
+
+        # Step 3 & 4
+        sysModel.set_current_position(sysModel.pos_out0)
+        return sysModel # system model @ t = n
+
     #------------------------------------------------------
     # Application specific functions (assistive training)
     #------------------------------------------------------
@@ -149,35 +174,17 @@ class admittance_type:
     def get_current_position(self):
         return self.pos_now
 
-def haptic_rendering(sysModel, sensor_input):
-    '''
-    ADMITTANCE-type device algorithm (mass-spring-damper)
-        1. read force of the user
-        2. calculate the resulting position
-        3. send corresponding position to low level controller
-            (in other words, send how much 
-            delta position the motor must move)
-        4. CHANGE virtual environment STATE    
-    '''
-    # Step 1 & 2
-    sysModel.calculate_position_target(sensor_input)
-
-    # Step 3 & 4
-    sysModel.set_current_position(sysModel.pos_out0)
-    sysModel_n = sysModel
-    return sysModel_n
 
 def command_actuator(system_admittance):
     '''
     Send command to low-level controller to move the motor at 
-    "delta" position. The command is not absolute position, 
-    but incremental position.  
-        Args: 
+        "delta" position. The command is not absolute position, 
+        but incremental position.  
         
+        Args:    
     '''
     
     return 0
-
 
 def initial_diagnostics(forceSensor, distanceSensor, window): 
     # for now, just distance sensor and force sensor

@@ -18,9 +18,10 @@ import RPi.GPIO as GPIO  # import GPIO
 from hx711 import HX711  # import the class HX711
 from gpiozero import DistanceSensor
 
-import numpy as np
 import serial
 import time
+
+import numpy as np
 import pandas as pd
 
 # =================================================================
@@ -78,7 +79,7 @@ ser_command.flush()
 #----------------------------
 # A. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
-# CAUTION: Transfer function is still X[m]/F[N/m]. Must be X[mm]/F[N/mm]!!
+# CAUTION: Transfer function is X[mm]/F[N/mm]!!
 # Option 1, 2, 3
 den_semi_1 = [10, 0.5] # [N.s/mm, N/mm]
 den_semi_2 = [1, 0.2] # [N.s/mm, N/mm]
@@ -153,7 +154,8 @@ def semi_active_mode(activationCode):
             stopCondition = True
 
 def assistive_constants(assistiveConstCode): 
-    '''Assistive value constants
+    '''
+    Assistive value constants
         values are still placeholders
     '''
     assist_const = {
@@ -164,8 +166,8 @@ def assistive_constants(assistiveConstCode):
     assist_const.get(assistiveConstCode)
 
 def admittance1_constants(admittanceCode): 
-    '''Spring, mass, damper constants selection (Three options)
-
+    '''
+    Spring, mass, damper constants selection (Three options)
     '''
     damper_spring_pair = {
         0: den_semi_1, 
@@ -180,7 +182,8 @@ def admittance1_constants(admittanceCode):
 # c. main full-active mode sub-program
 
 def full_active_mode(activationCode, admittance_const):
-    '''Sub-program 3: Patient full-active treatment.
+    '''
+    Sub-program 3: Patient full-active treatment.
         Patient's strength level has increased into levels
         where they could start actively train their muscle strength.
 
@@ -231,14 +234,14 @@ def isotonic_training(activationCode):
 
     while not stopCondition:
         start_loop = time.time()
-        sysModel_n = spf.haptic_rendering(sysModel, force_sensor) # Output system @ latest state
+        sysModel_n = sysModel.haptic_rendering(sysModel, force_sensor) # Output system @ latest state
         spf.command_actuator(sysModel_n) # send command to actuator
         
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
         time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
         command = spf.serial_routine(ser_command)
-
+    
         if command == "-s":
             stopCondition = True
 
@@ -269,14 +272,22 @@ if __name__=="__main__":
         print("Step 1. Initiating system diagnostics")
         spf.initial_diagnostics(force_sensor, distance_sensor)
 
-        while True:
+        while True: 
+            '''
+            Main program loop
+                When a rehabilitation program is finished, the loop goes back
+                to the top of this loop and loops again within the "standby" loop
+            '''
             # ====== STEP 2. SYSTEM SELECTION =======
             print("Step 2. System selection\n")
             time.sleep(2)
             print("Standby mode 1....waiting user input")
             standby_mode = True
 
-            while standby_mode:
+            while standby_mode: # 
+                '''
+                standby_mode loop
+                    this loop just loops around waiting for serial command'''
 
                 # = This is the part where raspi accepts integer from arduino
                 activationCode  = spf.serial_routine(ser_command)
@@ -298,10 +309,6 @@ if __name__=="__main__":
         print("shutting program down...")
         time.sleep(2)
 
-''' if program is succesfull, we run program using these lines (maybe?)
-if __name__=="__main__":
-    main_prog()
-'''
 #=========
 # NOTES & USEFUL LINKS
 #=========
