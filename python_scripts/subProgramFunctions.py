@@ -32,7 +32,7 @@ class admittance_type:
     """
     # Local Constants
     gravity = 9.81
-    slider_rail_length = 800 # [mm] v
+    slider_rail_length = 870 # [mm] v
 
     def __init__(self, 
                  admittance_const, 
@@ -237,7 +237,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
     print("Sensors: Nominal")
 
 def serial_routine(serial_object): # Interface with LCD GUI controlled by Arduino
-    command = " "
+    command = ""
     if serial_object.in_waiting > 0: # --> if there is data in buffer
         command = serial_object.readline().decode('utf-8').rstrip()    
 

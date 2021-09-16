@@ -84,11 +84,12 @@ den_full_3 = [10, 0.5] # [N.s/mm, N/mm]
 
 # 1. selection of rehabilitation mode
 def run_rehab_program(activationCode):
-    if activationCode[0] == 1:
+
+    if activationCode[0] == '1':
         passive_mode(activationCode)
-    elif activationCode[0] ==2:
+    elif activationCode[0] == '2':
         semi_active_mode(activationCode)
-    elif activationCode[0] == 3:
+    elif activationCode[0] == '3':
         full_active_mode(activationCode)     
     
 def passive_mode(activationCode): 
@@ -112,18 +113,17 @@ def semi_active_mode(activationCode):
                                   system to be used in the admittance system.
     '''
     stopCondition = False
-    assist_level = assistive_constants(activationCode[1]) # assign assistive level of machine
-    damper_spring = admittance1_constants(activationCode[2]) # assign which damper-spring system
-    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
-    sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
-    sysModel.set_force_window(weightMeanWindow)
+#     assist_level = assistive_constants(activationCode[1]) # assign assistive level of machine
+#     damper_spring = admittance1_constants(activationCode[2]) # assign which damper-spring system
+#     sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
+#     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
+#     sysModel.set_force_window(weightMeanWindow)
 
     start_loop = time.time()
     print("activation code: ")
     print("training mode: Semi-assistive")
     print("Assistive constant: ", assistive_constants(activationCode[1]))
     print("Spring damper constant: ", admittance1_constants(activationCode[2]))
-    print(" ")
     print(" ")
     print("waiting command")
     
@@ -164,7 +164,7 @@ def admittance1_constants(admittanceCode):
 #----------------------------
 # c. main full-active mode sub-program
 
-def full_active_mode(activationCode, admittance_const):
+def full_active_mode(activationCode):
     '''
     Sub-program 3: Patient full-active treatment.
         Patient's strength level has increased into levels
@@ -193,11 +193,12 @@ def full_active_mode(activationCode, admittance_const):
     #strength_option, serial_object, admittanceCode, 
     #                         force_input, position_output, force_sensor): 
     # full-active training selection (position or admittance control)
-    strength_training_option = {
-        '0': isotonic_training(activationCode),
-        '1': isometric_training(activationCode)
-    }
-    strength_training_option.get(activationCode[1])
+    
+    if activationCode[1] == "0":
+        isotonic_training(activationCode)
+    elif activationCode[1] =="1":
+        isometric_training(activationCode)
+        
 
 def isotonic_training(activationCode): 
     ''' 
@@ -210,10 +211,10 @@ def isotonic_training(activationCode):
                                   system to be used in the admittance system.
     '''
     stopCondition = False
-    damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
-    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
-    sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
-    sysModel.set_force_window(weightMeanWindow)
+#     damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
+#     sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
+#     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
+#     sysModel.set_force_window(weightMeanWindow)
     
     print("activation code: ")
     print("training mode: full-active")
@@ -236,9 +237,9 @@ def isotonic_training(activationCode):
 def isometric_training(activationCode): # Position Control
     stopCondition = False
     damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
-    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
-    sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
-    sysModel.set_force_window(weightMeanWindow)
+#     sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
+#     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
+#     sysModel.set_force_window(weightMeanWindow)
     
     print("activation code: ")
     print("training mode: full-active")
@@ -290,7 +291,7 @@ if __name__=="__main__":
             # ====== STEP 2. SYSTEM SELECTION =======
             print("Step 2. System selection\n")
             time.sleep(2)
-            print("Standby mode 1....waiting user input")
+            print("Standby mode ....waiting user input")
             standby_mode = True
 
             while standby_mode: # 
@@ -306,14 +307,16 @@ if __name__=="__main__":
                 print("test")
                 time.sleep(0.5)'''
                 print('standing by ...')
-                time.sleep(0.5)
-
+                
                 # => Run rehabilitation procedure based on 
                 #    user input through display.
                 if len(activationCode) == 3 and (not activationCode =="-s"):
                     # ====== STEP 3. RUN PROGRAM =======
                     run_rehab_program(activationCode)
                     standby_mode = False
+                
+                # standby 2 seconds
+                time.sleep(2)
 
     except (KeyboardInterrupt, SystemExit):  
         # code that executes before exiting after ctrl+C  
