@@ -46,6 +46,7 @@ class admittance_type:
         '''         
         # Variable for storing force and position data
         self.force_data = [0]
+        self.pos_now = 0 
         self.position_data = [self.pos_now]
 
         # Force and position tracking variables. 
@@ -58,7 +59,7 @@ class admittance_type:
 
         # Kinematic variable
         # Currently @zero IC
-        self.pos_now = 0 
+        
 
         '''
         Calculating the COEFFICIENTS for system difference equation
@@ -67,7 +68,7 @@ class admittance_type:
         num = 1
         sysModel_TFs = signal.TransferFunction(num, admittance_const)
         dt = 1/sampling_frequency
-        sysModel_TFz = sysModel_TFs.to_discrete(dt, method = 'ggbt', alpha = 0.5)
+        sysModel_TFz = sysModel_TFs.to_discrete(dt, method = 'gbt', alpha = 0.5)
         
         self.b_i = sysModel_TFz.num
         self.a_i = -sysModel_TFz.den
@@ -236,7 +237,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
     print("Sensors: Nominal")
 
 def serial_routine(serial_object): # Interface with LCD GUI controlled by Arduino
-
+    command = " "
     if serial_object.in_waiting > 0: # --> if there is data in buffer
         command = serial_object.readline().decode('utf-8').rstrip()    
 

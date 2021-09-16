@@ -84,14 +84,19 @@ den_full_3 = [10, 0.5] # [N.s/mm, N/mm]
 
 # 1. selection of rehabilitation mode
 def run_rehab_program(activationCode):
-    prog_option = {
-        1: passive_mode(activationCode),
-        2: semi_active_mode(activationCode),
-        3: full_active_mode(activationCode)     
-    }
-    prog_option.get(activationCode[0])
+    if activationCode[0] == 1:
+        passive_mode(activationCode)
+    elif activationCode[0] ==2:
+        semi_active_mode(activationCode)
+    elif activationCode[0] == 3:
+        full_active_mode(activationCode)     
     
-    
+def passive_mode(activationCode): 
+    return 0
+
+def full_passive_position_control():
+    return 0
+
 #----------------------------
 # 2. For SEMI-ACTIVE program
 #----------------------------
@@ -137,22 +142,22 @@ def assistive_constants(assistiveConstCode):
         values are still placeholders
     '''
     assist_const = {
-        0: 50, # [ ] unit not decided
-        1: 200,
-        2: 100
+        '0': 50, # [ ] unit not decided
+        '1': 200,
+        '2': 100
     }
-    assist_const.get(assistiveConstCode)
+    return assist_const.get(assistiveConstCode)
 
 def admittance1_constants(admittanceCode): 
     '''
     Spring, mass, damper constants selection (Three options)
     '''
     damper_spring_pair = {
-        0: den_semi_1, 
-        1: den_semi_2,
-        2: den_semi_3,
+        '0': den_semi_1, 
+        '1': den_semi_2,
+        '2': den_semi_3,
     }
-    damper_spring_pair.get(admittanceCode)
+    return damper_spring_pair.get(admittanceCode)
 
 #----------------------------
 # 3. For FULL-ACTIVE program
@@ -189,8 +194,8 @@ def full_active_mode(activationCode, admittance_const):
     #                         force_input, position_output, force_sensor): 
     # full-active training selection (position or admittance control)
     strength_training_option = {
-        0: isotonic_training(activationCode),
-        1: isometric_training(activationCode)
+        '0': isotonic_training(activationCode),
+        '1': isometric_training(activationCode)
     }
     strength_training_option.get(activationCode[1])
 
@@ -242,9 +247,8 @@ def isometric_training(activationCode): # Position Control
     print(" ")
     print(" ")
     print("waiting command")
+    
     while not stopCondition:
-
-        
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
         #time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
@@ -256,11 +260,11 @@ def isometric_training(activationCode): # Position Control
 def admittance2_constants(admittanceCode): 
     # Spring, mass, damper constants selection (Three options)
     damper_spring_pair = {
-        0: den_full_1, 
-        1: den_full_2,
-        2: den_full_3,
+        '0': den_full_1, 
+        '1': den_full_2,
+        '2': den_full_3,
     }
-    damper_spring_pair.get(admittanceCode)
+    return damper_spring_pair.get(admittanceCode)
  
 # =================================================================
 # ====================4. RUNNING MAIN PROGRAM =====================
@@ -296,10 +300,17 @@ if __name__=="__main__":
 
                 # = This is the part where raspi accepts integer from arduino
                 activationCode  = spf.serial_routine(ser_command)
+                '''print(activationCode)
+                print(isinstance(activationCode, str))
+                print(activationCode == "-s")
+                print("test")
+                time.sleep(0.5)'''
+                print('standing by ...')
+                time.sleep(0.5)
 
                 # => Run rehabilitation procedure based on 
                 #    user input through display.
-                if isinstance(activationCode, str) == True and (not activationCode =="-s"):
+                if len(activationCode) == 3 and (not activationCode =="-s"):
                     # ====== STEP 3. RUN PROGRAM =======
                     run_rehab_program(activationCode)
                     standby_mode = False
