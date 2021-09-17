@@ -16,7 +16,7 @@ import subProgramFunctions as spf
 from subProgramFunctions import admittance_type
 import RPi.GPIO as GPIO  # import GPIO
 from hx711 import HX711  # import the class HX711
-from gpiozero import DistanceSensor
+#from gpiozero import DistanceSensor
 
 import serial
 import time
@@ -120,7 +120,7 @@ def semi_active_mode(activationCode):
 #     sysModel.set_force_window(weightMeanWindow)
 
     start_loop = time.time()
-    print("activation code: ")
+    print("ACTIVATION CODE: ", activationCode)
     print("training mode: Semi-assistive")
     print("Assistive constant: ", assistive_constants(activationCode[1]))
     print("Spring damper constant: ", admittance1_constants(activationCode[2]))
@@ -219,7 +219,7 @@ def isotonic_training(activationCode):
 #     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
 #     sysModel.set_force_window(weightMeanWindow)
     
-    print("activation code: ")
+    print("ACTIVATION CODE: ", activationCode)
     print("training mode: full-active")
     print("training mode: isotonic")
     print("Spring damper constant: ", admittance2_constants(activationCode[2]))
@@ -247,7 +247,7 @@ def isometric_training(activationCode): # Position Control
 #     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
 #     sysModel.set_force_window(weightMeanWindow)
     
-    print("activation code: ")
+    print("ACTIVATION CODE: ", activationCode)
     print("training mode: full-active")
     print("training mode: isometric")
     print("Spring damper constant: ", admittance2_constants(activationCode[2]))
@@ -275,64 +275,6 @@ def admittance2_constants(admittanceCode):
     }
     return damper_spring_pair.get(admittanceCode)
 
-def initial_diagnostics(forceSensor, distanceSensor, window): 
-    # for now, just distance sensor and force sensor
-    # Verify sensors are working
-    # a. Force sensor    
-    print("====1.A. Setting up Load Cell!======")
-    err = True
-    err_read_bool = True
-
-    # check if load cell reading is successful
-    # the while routine here needs some SERIOUS revision
-    while err and err_read_bool:
-        err = forceSensor.zero()
-        if err == True:
-            print('Tare is unsuccessful. Retrying')#raise ValueError('Tare is unsuccessful. Retrying')
-        else:
-            err = False
-            print('Tare successful!')
-        
-        reading = forceSensor.get_raw_data_mean()
-        if reading:
-            #okay
-            print('Reading okay!')
-            print(' ')
-            err_read_bool = False
-        else:
-            print('invalid data, retrying')
-        
-        if (err and err_read_bool) == False:
-            print("-Load cell NOMINAL\n")
-            time.sleep(2)
-            
-            
-    print("current weight: ",forceSensor.get_weight_mean(window), " grams")
-    print(" ")
-    print("Standing by...")
-    print(" ")
-    time.sleep(2) # standing by
-
-    # b. Distance sensor (HC-SR04 ultrasonic)
-    print("====1.B. Setting up Distance Sensor!======")
-    dist_okay = False
-    
-    
-    while not dist_okay:
-        print("testing distance sensor")
-        
-        print(distanceSensor.distance)
-        check_sensor = isinstance(distanceSensor.distance, float)
-        print(check_sensor)
-        if check_sensor == True:
-            dist_okay = True
-            print('Sensor reading', distanceSensor.distance)
-            print('-Distance sensor NOMINAL\n')
-        print(dist_okay)
-
-    #=====================================================
-    print("\n")
-    print("Sensors: Nominal")
     
 # =================================================================
 # ====================4. RUNNING MAIN PROGRAM =====================
@@ -362,8 +304,8 @@ if __name__=="__main__":
         force_sensor.set_scale_ratio(pre_SetRatio)  # set ratio for current channel
 
         #   b. Distance sensor
-        distance_sensor = DistanceSensor(trigger, echo)
-
+        #distance_sensor = DistanceSensor(trigger, echo)
+        distance_sensor = 1
         #   c. knee angle sensor
 
         # 3. Other global variables
@@ -387,7 +329,7 @@ if __name__=="__main__":
         # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
         #----------------------------
         # Option 1, 2, 3
-        den_full_1 = [10, 0.5] # [N.s/mm, N/mm]
+        den_full_1 = [10, 0.4] # [N.s/mm, N/mm]
         den_full_2 = [1, 0.6] # [N.s/mm, N/mm]
         den_full_3 = [10, 0.8] # [N.s/mm, N/mm]
         # main loop of program 
@@ -396,7 +338,7 @@ if __name__=="__main__":
         # run once
         print("====main program====\n ====Rehab-Bot====\n")
         print("Step 1. Initiating system diagnostics")
-        initial_diagnostics(force_sensor, distance_sensor, weightMeanWindow)
+        spf.initial_diagnostics(force_sensor, distance_sensor, weightMeanWindow)
 
         while True: 
             '''
@@ -423,9 +365,11 @@ if __name__=="__main__":
                 print("test")
                 time.sleep(0.5)'''
                 print('standing by ...')
+                print(' ')
                 
                 # => Run rehabilitation procedure based on 
                 #    user input through display.
+                
                 if len(activationCode) == 3 and (not activationCode =="-s"):
                     # ====== STEP 3. RUN PROGRAM =======
                     run_rehab_program(activationCode)

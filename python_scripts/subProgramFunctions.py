@@ -190,6 +190,69 @@ def command_actuator(system_admittance):
     return 0
 
 
+def initial_diagnostics(forceSensor, distanceSensor, window): 
+    # for now, just distance sensor and force sensor
+    # Verify sensors are working
+    # a. Force sensor    
+    print("====1.A. Setting up Load Cell!======")
+    err = True
+    err_read_bool = True
+
+    # check if load cell reading is successful
+    while err or err_read_bool:
+        err = forceSensor.zero()
+        if err == True:
+            print('Tare is unsuccessful. Retrying')#raise ValueError('Tare is unsuccessful. Retrying')
+        else:
+            err = False
+            print('Tare successful!')
+        
+        reading = forceSensor.get_raw_data_mean()
+        if reading:
+            #okay
+            print('Reading okay!')
+            print(' ')
+            err_read_bool = False
+        else:
+            print('invalid data, retrying')
+        
+        if (err or err_read_bool) == False:
+            print("-Load cell NOMINAL\n")
+            time.sleep(1)
+            
+            
+    print("Force detected: ",round(forceSensor.get_weight_mean(window)/1000,1), " N")
+    print(" ")
+    print("Standing by...")
+    print(" ")
+    time.sleep(2) # standing by
+    
+    '''
+    # b. Distance sensor (HC-SR04 ultrasonic)
+    print("====1.B. Setting up Distance Sensor!======")
+    dist_okay = False
+    
+    
+    while not dist_okay:
+        print("testing distance sensor")
+        
+        print(distanceSensor.distance)
+        check_sensor = isinstance(distanceSensor.distance, float)
+        print(check_sensor)
+        if check_sensor == True:
+            dist_okay = True
+            print('Sensor reading', distanceSensor.distance)
+            print('-Distance sensor NOMINAL\n')
+        print(dist_okay)
+    '''
+    #=====================================================
+    print("\n")
+    print("Sensors: Nominal")
+    print(" ")
+    print("==========================")
+    print(" ")
+    print(" ")
+    
 
 def serial_routine(serial_object):
     '''
