@@ -27,16 +27,16 @@ import numpy as np
 # =================================================================
 # ==============0. CONFIGURING GLOBAL CONSTANTS====================
 # =================================================================
-
+'''
 # 1. pin assignments GPIO
 # - load sensor
 #doutPin = 20
 #pdSCKPin = 21
 weightMeanWindow = 20
-pre_SetRatio = 222489/1000 # based on calibration
+pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 = 1000 gram
 
 # - distance sensor
-trigger = 18
+trigger = 23
 echo = 24
 
 # - potensiometer. 
@@ -68,16 +68,16 @@ ser_command.flush()
 # Option 1, 2, 3
 den_semi_1 = [10, 0.5] # [N.s/mm, N/mm]
 den_semi_2 = [1, 0.2] # [N.s/mm, N/mm]
-den_semi_3 = [10, 0.5] # [N.s/mm, N/mm]
+den_semi_3 = [10, 0.7] # [N.s/mm, N/mm]
 
 #----------------------------
 # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
 # Option 1, 2, 3
 den_full_1 = [10, 0.5] # [N.s/mm, N/mm]
-den_full_2 = [1, 0.2] # [N.s/mm, N/mm]
-den_full_3 = [10, 0.5] # [N.s/mm, N/mm]
-
+den_full_2 = [1, 0.6] # [N.s/mm, N/mm]
+den_full_3 = [10, 0.8] # [N.s/mm, N/mm]
+'''
 # =================================================================
 # ==================2. MAIN SYSTEM FUNCTIONS=======================
 # =================================================================
@@ -113,9 +113,9 @@ def semi_active_mode(activationCode):
                                   system to be used in the admittance system.
     '''
     stopCondition = False
-#     assist_level = assistive_constants(activationCode[1]) # assign assistive level of machine
-#     damper_spring = admittance1_constants(activationCode[2]) # assign which damper-spring system
-#     sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
+    assist_level = assistive_constants(activationCode[1]) # assign assistive level of machine
+    damper_spring = admittance1_constants(activationCode[2]) # assign which damper-spring system
+    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
 #     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
 #     sysModel.set_force_window(weightMeanWindow)
 
@@ -124,8 +124,11 @@ def semi_active_mode(activationCode):
     print("training mode: Semi-assistive")
     print("Assistive constant: ", assistive_constants(activationCode[1]))
     print("Spring damper constant: ", admittance1_constants(activationCode[2]))
+    print("System coef denumerator: ", sysModel.a_i)
+    print("System coef numerator: ", sysModel.b_i)
     print(" ")
     print("waiting command")
+    print(" ")
     
     while not stopCondition:
 
@@ -211,8 +214,8 @@ def isotonic_training(activationCode):
                                   system to be used in the admittance system.
     '''
     stopCondition = False
-#     damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
-#     sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
+    damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
+    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
 #     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
 #     sysModel.set_force_window(weightMeanWindow)
     
@@ -220,9 +223,12 @@ def isotonic_training(activationCode):
     print("training mode: full-active")
     print("training mode: isotonic")
     print("Spring damper constant: ", admittance2_constants(activationCode[2]))
-    print(" ")
+    print("System coef denumerator: ", sysModel.a_i)
+    print("System coef numerator: ", sysModel.b_i)
     print(" ")
     print("waiting command")
+    print(" ")
+    
     while not stopCondition:
 
         
@@ -237,7 +243,7 @@ def isotonic_training(activationCode):
 def isometric_training(activationCode): # Position Control
     stopCondition = False
     damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
-#     sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
+    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
 #     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
 #     sysModel.set_force_window(weightMeanWindow)
     
@@ -245,9 +251,11 @@ def isometric_training(activationCode): # Position Control
     print("training mode: full-active")
     print("training mode: isometric")
     print("Spring damper constant: ", admittance2_constants(activationCode[2]))
-    print(" ")
+    print("System coef denumerator: ", sysModel.a_i)
+    print("System coef numerator: ", sysModel.b_i)
     print(" ")
     print("waiting command")
+    print(" ")
     
     while not stopCondition:
         # this time library attempts to make the system sampling frequency
@@ -266,7 +274,66 @@ def admittance2_constants(admittanceCode):
         '2': den_full_3,
     }
     return damper_spring_pair.get(admittanceCode)
- 
+
+def initial_diagnostics(forceSensor, distanceSensor, window): 
+    # for now, just distance sensor and force sensor
+    # Verify sensors are working
+    # a. Force sensor    
+    print("====1.A. Setting up Load Cell!======")
+    err = True
+    err_read_bool = True
+
+    # check if load cell reading is successful
+    # the while routine here needs some SERIOUS revision
+    while err and err_read_bool:
+        err = forceSensor.zero()
+        if err == True:
+            print('Tare is unsuccessful. Retrying')#raise ValueError('Tare is unsuccessful. Retrying')
+        else:
+            err = False
+            print('Tare successful!')
+        
+        reading = forceSensor.get_raw_data_mean()
+        if reading:
+            #okay
+            print('Reading okay!')
+            print(' ')
+            err_read_bool = False
+        else:
+            print('invalid data, retrying')
+        
+        if (err and err_read_bool) == False:
+            print("-Load cell NOMINAL\n")
+            time.sleep(2)
+            
+            
+    print("current weight: ",forceSensor.get_weight_mean(window), " grams")
+    print(" ")
+    print("Standing by...")
+    print(" ")
+    time.sleep(2) # standing by
+
+    # b. Distance sensor (HC-SR04 ultrasonic)
+    print("====1.B. Setting up Distance Sensor!======")
+    dist_okay = False
+    
+    
+    while not dist_okay:
+        print("testing distance sensor")
+        
+        print(distanceSensor.distance)
+        check_sensor = isinstance(distanceSensor.distance, float)
+        print(check_sensor)
+        if check_sensor == True:
+            dist_okay = True
+            print('Sensor reading', distanceSensor.distance)
+            print('-Distance sensor NOMINAL\n')
+        print(dist_okay)
+
+    #=====================================================
+    print("\n")
+    print("Sensors: Nominal")
+    
 # =================================================================
 # ====================4. RUNNING MAIN PROGRAM =====================
 # =================================================================
@@ -274,13 +341,62 @@ def admittance2_constants(admittanceCode):
 # Running main program 
 if __name__=="__main__":
     try:
+        # 1. pin assignments GPIO
+        # - load sensor
+        #doutPin = 20
+        #pdSCKPin = 21
+        weightMeanWindow = 20
+        pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 = 1000 gram
+
+        # - distance sensor
+        trigger = 23
+        echo = 24
+
+        # - potensiometer. 
+        potAngleAnalogIn = 17 # check again
+
+        # 2. Configuring sensors
+        #   a. Force sensor
+        GPIO.setmode(GPIO.BCM) 
+        force_sensor = HX711(dout_pin=20, pd_sck_pin=21)
+        force_sensor.set_scale_ratio(pre_SetRatio)  # set ratio for current channel
+
+        #   b. Distance sensor
+        distance_sensor = DistanceSensor(trigger, echo)
+
+        #   c. knee angle sensor
+
+        # 3. Other global variables
+        deviceLocation = '/dev/ttyACM0' # port in raspi
+        freqSample = 200 # [Hz] system operating frequency 500 Hz rencananya
+        sample_period = 1/freqSample
+        ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
+        ser_command.flush()
+
+
+        #----------------------------
+        # A. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS
+        #----------------------------
+        # CAUTION: Transfer function is X[mm]/F[N/mm]!!
+        # Option 1, 2, 3
+        den_semi_1 = [10, 0.5] # [N.s/mm, N/mm]
+        den_semi_2 = [1, 0.2] # [N.s/mm, N/mm]
+        den_semi_3 = [10, 0.7] # [N.s/mm, N/mm]
+
+        #----------------------------
+        # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
+        #----------------------------
+        # Option 1, 2, 3
+        den_full_1 = [10, 0.5] # [N.s/mm, N/mm]
+        den_full_2 = [1, 0.6] # [N.s/mm, N/mm]
+        den_full_3 = [10, 0.8] # [N.s/mm, N/mm]
         # main loop of program 
         # main_prog()
         # ====== STEP 1. INITIATING SYSTEM DIAGNOSTICS =======
         # run once
         print("====main program====\n ====Rehab-Bot====\n")
         print("Step 1. Initiating system diagnostics")
-        #spf.initial_diagnostics(force_sensor, distance_sensor, weightMeanWindow)
+        initial_diagnostics(force_sensor, distance_sensor, weightMeanWindow)
 
         while True: 
             '''

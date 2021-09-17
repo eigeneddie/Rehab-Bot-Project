@@ -1,7 +1,8 @@
 import numpy as np
 import time
 from scipy import signal
-import RPi.GPIO as GPIO 
+import RPi.GPIO as GPIO
+from gpiozero import DistanceSensor
 # Complimentary functions for the mainProg script
 
 class admittance_type:
@@ -111,7 +112,8 @@ class admittance_type:
         self.pos_out1 = self.pos_out0
 
     def set_initial_position(self, distance_sensor):
-        '''Reading the current distance of slider in the 
+        '''
+        Reading the current distance of slider in the 
             rehabilitation system. This uses an ultrasonic sensor
             and is only called once when a sub-program is run
     
@@ -187,56 +189,15 @@ def command_actuator(system_admittance):
     
     return 0
 
-def initial_diagnostics(forceSensor, distanceSensor, window): 
-    # for now, just distance sensor and force sensor
-    # Verify sensors are working
-    GPIO.setmode(GPIO.BCM)
-    # a. Force sensor
-    print("====1. Setting up Load Cell!======")
-    err = True
-    err_read_bool = True
 
-    # check if load cell reading is successful
-    while err and err_read_bool:
-        err = forceSensor.zero()
-        if err == True:
-            print('Tare is unsuccessful. Retrying')#raise ValueError('Tare is unsuccessful. Retrying')
-        else:
-            print('Tare successful!')
-        
-        reading = forceSensor.get_raw_data_mean()
-        if reading:
-            #okay
-            err_read_bool = False
-        else:
-            print('invalid data, retrying')
-        
-        if (err and err_read_bool) == False:
-            print("-Load cell NOMINAL\n")
-            
-            
-    print("current weight: ",forceSensor.get_weight_mean(window), " grams")
-    print(" ")
-    print("Standing by...")
-    time.sleep(2) # standing by
 
-    # b. Distance sensor (HC-SR04 ultrasonic)
-    print("====2. Setting up Distance Sensor!======")
-    dist_okay = False
-
-    while not dist_okay:
-        print("testing distance sensor")
-        dist_okay = isinstance(distanceSensor.distance, float)
-
-        if dist_okay == True:
-            print('-Distance sensor NOMINAL\n')
-        print(dist_okay)
-
-    #=====================================================
-    print("\n")
-    print("Sensors: Nominal")
-
-def serial_routine(serial_object): # Interface with LCD GUI controlled by Arduino
+def serial_routine(serial_object):
+    '''
+    Interface with LCD GUI controlled by Arduino
+        receives command from LCD user interface for which
+        rehabilitation mode to run.
+    '''
+    
     command = ""
     if serial_object.in_waiting > 0: # --> if there is data in buffer
         command = serial_object.readline().decode('utf-8').rstrip()    
