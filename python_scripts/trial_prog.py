@@ -61,6 +61,7 @@ freqSample = 200 # [Hz] system operating frequency 500 Hz rencananya
 sample_period = 1/freqSample
 ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
 
+under_sample_time = 2.0
 '''ser_command.flushInput()
 ser_command.flush()
 ser_command.flushOutput()
@@ -150,7 +151,7 @@ def semi_active_mode(activationCode, force_sensor):
         sysModel.haptic_rendering_2(actual_pos)
         command = spf.serial_routine(ser_command)
         capture_time = time.time()
-        if (time_count>2) == 0:
+        if (time_count>under_sample_time):
             print("Input Force: ", round(sysModel.force_in0,2), " N. Target position: ", round(sysModel.pos_now,2), " mm.")
             time_count = 0
             
@@ -266,7 +267,7 @@ def isotonic_training(activationCode, force_sensor):
         command = spf.serial_routine(ser_command)
         capture_time = time.time()
         
-        if (time_count>2) == 0:
+        if (time_count>under_sample_time):
             print("Input Force: ", round(sysModel.force_in0,2), " N. Target position: ", round(sysModel.pos_now,2), " mm.")
             time_count = 0
             
@@ -308,7 +309,7 @@ def isometric_training(activationCode, force_sensor): # Position Control
         sysModel.haptic_rendering_2(actual_pos)
         command = spf.serial_routine(ser_command)
         capture_time = time.time()
-        if (time_count>2) == 0:
+        if (time_count>under_sample_time):
             print("Input Force: ", round(sysModel.force_in0,2), " N. Target position: ", round(sysModel.pos_now,2), " mm.")
             time_count = 0
             
