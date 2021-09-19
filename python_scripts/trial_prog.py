@@ -23,17 +23,18 @@ import time
 
 import numpy as np
 #import pandas as pd
+#import matplotlib.pyplot as plt
 
 # =================================================================
 # ==============0. CONFIGURING GLOBAL CONSTANTS====================
 # =================================================================
-'''
+
 # 1. pin assignments GPIO
 # - load sensor
 #doutPin = 20
 #pdSCKPin = 21
 weightMeanWindow = 20
-pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 = 1000 gram
+pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 ~= 1000 gram
 
 # - distance sensor
 trigger = 23
@@ -49,7 +50,8 @@ force_sensor = HX711(dout_pin=20, pd_sck_pin=21)
 force_sensor.set_scale_ratio(pre_SetRatio)  # set ratio for current channel
 
 #   b. Distance sensor
-distance_sensor = DistanceSensor(trigger, echo)
+#distance_sensor = DistanceSensor(trigger, echo)
+distance_sensor = 1 # let's just leave this out for the mean time
 
 #   c. knee angle sensor
 
@@ -58,15 +60,17 @@ deviceLocation = '/dev/ttyACM0' # port in raspi
 freqSample = 200 # [Hz] system operating frequency 500 Hz rencananya
 sample_period = 1/freqSample
 ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
+
+'''ser_command.flushInput()
 ser_command.flush()
-
-
+ser_command.flushOutput()
+'''
 #----------------------------
 # A. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
 # CAUTION: Transfer function is X[mm]/F[N/mm]!!
 # Option 1, 2, 3
-den_semi_1 = [10, 0.5] # [N.s/mm, N/mm]
+den_semi_1 = [1, 0.5] # [N.s/mm, N/mm]
 den_semi_2 = [1, 0.2] # [N.s/mm, N/mm]
 den_semi_3 = [10, 0.7] # [N.s/mm, N/mm]
 
@@ -74,23 +78,27 @@ den_semi_3 = [10, 0.7] # [N.s/mm, N/mm]
 # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
 # Option 1, 2, 3
-den_full_1 = [10, 0.5] # [N.s/mm, N/mm]
+den_full_1 = [1, 5] # [N.s/mm, N/mm]
 den_full_2 = [1, 0.6] # [N.s/mm, N/mm]
-den_full_3 = [10, 0.8] # [N.s/mm, N/mm]
-'''
+den_full_3 = [5, 0.8] # [N.s/mm, N/mm]
+
+# trial variables
+
+force_data_so_far = []
+position_data_so_far = []
 # =================================================================
 # ==================2. MAIN SYSTEM FUNCTIONS=======================
 # =================================================================
 
 # 1. selection of rehabilitation mode
-def run_rehab_program(activationCode):
+def run_rehab_program(activationCode, force_sensor):
 
     if activationCode[0] == '1':
         passive_mode(activationCode)
     elif activationCode[0] == '2':
-        semi_active_mode(activationCode)
+        semi_active_mode(activationCode, force_sensor)
     elif activationCode[0] == '3':
-        full_active_mode(activationCode)     
+        full_active_mode(activationCode, force_sensor)     
     
 def passive_mode(activationCode): 
     return 0
@@ -102,7 +110,7 @@ def full_passive_position_control():
 # 2. For SEMI-ACTIVE program
 #----------------------------
 # b. main semi-active mode/semi-assistive sub-program
-def semi_active_mode(activationCode):
+def semi_active_mode(activationCode, force_sensor):
     ''' 
     Semi active-strength exercise
         Constructing Admittance haptic system difference equation for
@@ -115,9 +123,7 @@ def semi_active_mode(activationCode):
     stopCondition = False
     assist_level = assistive_constants(activationCode[1]) # assign assistive level of machine
     damper_spring = admittance1_constants(activationCode[2]) # assign which damper-spring system
-    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
-#     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
-#     sysModel.set_force_window(weightMeanWindow)
+    sysModel = admittance_type(damper_spring, freqSample, force_sensor) # initialize dynamic system model
 
     start_loop = time.time()
     print("ACTIVATION CODE: ", activationCode)
@@ -129,16 +135,32 @@ def semi_active_mode(activationCode):
     print(" ")
     print("waiting command")
     print(" ")
-    
-    while not stopCondition:
 
+    sysModel.set_force_window(weightMeanWindow)    
+    start_loop = time.time()
+    time_count = 0
+    while not stopCondition:
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
-        command = spf.serial_routine(ser_command)
         #time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
+        # this time library attempts to make the system sampling frequency
+        # consistent at about "freqSample"
+        pos_setpoint = sysModel.haptic_rendering_1()
+        actual_pos = spf.command_actuator(pos_setpoint)
+        sysModel.haptic_rendering_2(actual_pos)
+        command = spf.serial_routine(ser_command)
+        capture_time = time.time()
+        if (time_count>2) == 0:
+            print("Input Force: ", round(sysModel.force_in0,2), " N. Target position: ", round(sysModel.pos_now,2), " mm.")
+            time_count = 0
+            
         if command == "-s":
             stopCondition = True
-
+           
+        time_count = time_count + sample_period
+        
+        time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
+        
 def assistive_constants(assistiveConstCode): 
     '''
     Assistive value constants
@@ -167,7 +189,7 @@ def admittance1_constants(admittanceCode):
 #----------------------------
 # c. main full-active mode sub-program
 
-def full_active_mode(activationCode):
+def full_active_mode(activationCode, force_sensor):
     '''
     Sub-program 3: Patient full-active treatment.
         Patient's strength level has increased into levels
@@ -198,12 +220,12 @@ def full_active_mode(activationCode):
     # full-active training selection (position or admittance control)
     
     if activationCode[1] == "0":
-        isotonic_training(activationCode)
+        isotonic_training(activationCode, force_sensor)
     elif activationCode[1] =="1":
-        isometric_training(activationCode)
+        isometric_training(activationCode, force_sensor)
         
 
-def isotonic_training(activationCode): 
+def isotonic_training(activationCode, force_sensor): 
     ''' 
     Full active-strength exercise-isotonic training
         Constructing Admittance haptic system difference equation for
@@ -215,9 +237,9 @@ def isotonic_training(activationCode):
     '''
     stopCondition = False
     damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
-    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
+    sysModel = admittance_type(damper_spring, freqSample, force_sensor) # initialize dynamic system model
 #     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
-#     sysModel.set_force_window(weightMeanWindow)
+
     
     print("ACTIVATION CODE: ", activationCode)
     print("training mode: full-active")
@@ -228,22 +250,37 @@ def isotonic_training(activationCode):
     print(" ")
     print("waiting command")
     print(" ")
-    
-    while not stopCondition:
 
-        
+    sysModel.set_force_window(weightMeanWindow)    
+    start_loop = time.time()
+    time_count = 0
+    while not stopCondition:
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
         #time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
+        # this time library attempts to make the system sampling frequency
+        # consistent at about "freqSample"
+        pos_setpoint = sysModel.haptic_rendering_1()
+        actual_pos = spf.command_actuator(pos_setpoint)
+        sysModel.haptic_rendering_2(actual_pos)
         command = spf.serial_routine(ser_command)
-    
+        capture_time = time.time()
+        
+        if (time_count>2) == 0:
+            print("Input Force: ", round(sysModel.force_in0,2), " N. Target position: ", round(sysModel.pos_now,2), " mm.")
+            time_count = 0
+            
         if command == "-s":
             stopCondition = True
-
-def isometric_training(activationCode): # Position Control
+           
+        time_count = time_count + sample_period
+        
+        time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
+        
+def isometric_training(activationCode, force_sensor): # Position Control
     stopCondition = False
     damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
-    sysModel = admittance_type(damper_spring, freqSample) # initialize dynamic system model
+    sysModel = admittance_type(damper_spring, freqSample, force_sensor) # initialize dynamic system model
 #     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
 #     sysModel.set_force_window(weightMeanWindow)
     
@@ -257,15 +294,31 @@ def isometric_training(activationCode): # Position Control
     print("waiting command")
     print(" ")
     
+    sysModel.set_force_window(weightMeanWindow)    
+    start_loop = time.time()
+    time_count = 0
     while not stopCondition:
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
         #time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
+        # this time library attempts to make the system sampling frequency
+        # consistent at about "freqSample"
+        pos_setpoint = sysModel.haptic_rendering_1()
+        actual_pos = spf.command_actuator(pos_setpoint)
+        sysModel.haptic_rendering_2(actual_pos)
         command = spf.serial_routine(ser_command)
-    
+        capture_time = time.time()
+        if (time_count>2) == 0:
+            print("Input Force: ", round(sysModel.force_in0,2), " N. Target position: ", round(sysModel.pos_now,2), " mm.")
+            time_count = 0
+            
         if command == "-s":
             stopCondition = True
-
+           
+        time_count = time_count + sample_period
+        
+        time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
+        
 def admittance2_constants(admittanceCode): 
     # Spring, mass, damper constants selection (Three options)
     damper_spring_pair = {
@@ -283,55 +336,6 @@ def admittance2_constants(admittanceCode):
 # Running main program 
 if __name__=="__main__":
     try:
-        # 1. pin assignments GPIO
-        # - load sensor
-        #doutPin = 20
-        #pdSCKPin = 21
-        weightMeanWindow = 20
-        pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 = 1000 gram
-
-        # - distance sensor
-        trigger = 23
-        echo = 24
-
-        # - potensiometer. 
-        potAngleAnalogIn = 17 # check again
-
-        # 2. Configuring sensors
-        #   a. Force sensor
-        GPIO.setmode(GPIO.BCM) 
-        force_sensor = HX711(dout_pin=20, pd_sck_pin=21)
-        force_sensor.set_scale_ratio(pre_SetRatio)  # set ratio for current channel
-
-        #   b. Distance sensor
-        #distance_sensor = DistanceSensor(trigger, echo)
-        distance_sensor = 1
-        #   c. knee angle sensor
-
-        # 3. Other global variables
-        deviceLocation = '/dev/ttyACM0' # port in raspi
-        freqSample = 200 # [Hz] system operating frequency 500 Hz rencananya
-        sample_period = 1/freqSample
-        ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
-        ser_command.flush()
-
-
-        #----------------------------
-        # A. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS
-        #----------------------------
-        # CAUTION: Transfer function is X[mm]/F[N/mm]!!
-        # Option 1, 2, 3
-        den_semi_1 = [10, 0.5] # [N.s/mm, N/mm]
-        den_semi_2 = [1, 0.2] # [N.s/mm, N/mm]
-        den_semi_3 = [10, 0.7] # [N.s/mm, N/mm]
-
-        #----------------------------
-        # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
-        #----------------------------
-        # Option 1, 2, 3
-        den_full_1 = [10, 0.4] # [N.s/mm, N/mm]
-        den_full_2 = [1, 0.6] # [N.s/mm, N/mm]
-        den_full_3 = [10, 0.8] # [N.s/mm, N/mm]
         # main loop of program 
         # main_prog()
         # ====== STEP 1. INITIATING SYSTEM DIAGNOSTICS =======
@@ -372,8 +376,10 @@ if __name__=="__main__":
                 
                 if len(activationCode) == 3 and (not activationCode =="-s"):
                     # ====== STEP 3. RUN PROGRAM =======
-                    run_rehab_program(activationCode)
+                    run_rehab_program(activationCode, force_sensor)
                     standby_mode = False
+                    #plt.figure(1)
+                    
                 
                 # standby 2 seconds
                 time.sleep(2)

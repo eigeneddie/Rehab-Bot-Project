@@ -29,7 +29,10 @@ class admittance_type:
             pos_now [mm]: Current absolute position of the training program
             ---------------------------------------------------------
             a_i []: Position term coefficient
-            b_i [mm/N]: Force term coefficient   
+            b_i [mm/N]: Force term coefficient
+            
+            ....
+            ....add more
     """
     # Local Constants
     gravity = 9.81
@@ -37,31 +40,37 @@ class admittance_type:
 
     def __init__(self, 
                  admittance_const, 
-                 sampling_frequency):
+                 sampling_frequency,
+                 load_cell ):
         '''
         Init a new instance of admittance environment
 
             Args:
-                admittance_const [float list]: denumerator of the system transfer function of spring-damper system
-                sampling_frequency [float]: sampling frequency of the discrete system 
-        '''         
+                -admittance_const [float list]: denumerator of the system transfer function of
+                                                spring-damper system.
+                -sampling_frequency [float]: sampling frequency of the discrete system.
+                -load_cell [N]: force sensor object used to sense muscle strength (force) from patient.
+        '''
+        # Store force sensing object
+        self.force_sensor = load_cell
+        
+        # Variables to be changed later (not during) __init__:
+        self.pos_init_absolute = 0
+        self.pos_now = 0
+        self.sensorWindow = 20
+        
         # Variable for storing force and position data
-        self.force_data = [0]
-        self.pos_now = 0 
-        self.position_data = [self.pos_now]
-
+        self.force_data = []
+        self.position_data = []
+    
         # Force and position tracking variables. 
         # First order system
         # Currently @zero IC 
         self.force_in0 = 0
         self.force_in1 = 0
-        self.pos_out0 = 0
+        self.pos_target = 0
         self.pos_out1 = 0
-
-        # Kinematic variable
-        # Currently @zero IC
         
-
         '''
         Calculating the COEFFICIENTS for system difference equation
         based on spring and damper provided
@@ -74,20 +83,7 @@ class admittance_type:
         self.b_i = sysModel_TFz.num
         self.a_i = -sysModel_TFz.den
 
-        self.sensorWindow = 20
-
-    def new_force_reading(self, force_sensor):
-        '''
-        Read the latest force reading (F[n])
-
-            Args:  
-                force_sensor [N]: force sensor object using HX711 library
-            '''
-        self.force_in0 = self.gravity*force_sensor.get_weight_mean(self.sensorWindow)/1000
-        self.force_data.append(self.force_in0)
-        return self.force_in0
-
-    def calculate_position_target(self, force_sensor):
+    def haptic_rendering_1(self):
         '''
         Position calculation using difference equation.
             Difference equation format: 
@@ -98,20 +94,69 @@ class admittance_type:
             where X: position, F: force
 
             Args:
-                force_sensor [N]: sensor reading from HX711 that   
-                                  processes the load-cell 
+                NA
+                    
+            ADMITTANCE-type device algorithm (mass-spring-damper)
+            1. read force of the user
+            2. calculate target position
+            3. send corresponding position to low level controller
+                (in other words, send how much 
+                delta position the motor must move)
+            4. CHANGE virtual environment STATE 
+
         '''
-        self.force_in0 = self.new_force_reading(force_sensor)
+        
+        # Step 1. Read force of user
+        self.force_in0 = self.new_force_reading()
         self.force_data.append(self.force_in0)
+        
+        # Step 2. calculate target position
         position_term = self.a_i[1]*self.pos_out1
         force_term = self.b_i[0]*self.force_in0 + self.b_i[1]*self.force_in1
-        self.pos_out0 = position_term + force_term
-        self.position_data.append(self.pos_out0) # FLAG
+        self.pos_target = position_term + force_term
+        
+        return self.pos_target
+    
+    def haptic_rendering_2(self, delta_dist_actual):
+        '''
+        ADMITTANCE-type device algorithm (mass-spring-damper)
+            1. read force of the user
+            2. calculate target position
+            3. send corresponding position to low level controller
+                (in other words, send how much 
+                delta position the motor must move)
+            4. CHANGE virtual environment STATE 
 
+            Args:
+                NA
+        '''
+        # Step 3
+        # this is done outside the object
+        
+        # Step 4   
+        self.set_current_position(delta_dist_actual)
+        self.position_data.append(self.pos_now)
+                
+        # save temporary state 
         self.force_in1 = self.force_in0
-        self.pos_out1 = self.pos_out0
+        self.pos_out1 = self.pos_now
+        
+        # sysModel is now @ t = n (new state)
 
-    def set_initial_position(self, distance_sensor):
+        
+    def new_force_reading(self):
+        '''
+        Read the latest force reading (F[n])
+
+            Args:  
+                NA
+            '''
+        self.force_in0 = self.gravity*self.force_sensor.get_weight_mean(self.sensorWindow)/1000
+        self.force_data.append(self.force_in0)
+        return self.force_in0
+    
+
+    def set_initial_position(self, INIT_distance):
         '''
         Reading the current distance of slider in the 
             rehabilitation system. This uses an ultrasonic sensor
@@ -119,11 +164,11 @@ class admittance_type:
     
             Args:
                 current_distance [mm]: sensor reading of slider position
-                                       from ULTRASONIC sensor
+                                       from ULTRASONIC sensor from ORIGIN
         '''
-        self.pos_init_absolute = distance_sensor
+        self.pos_init_absolute = INIT_distance
 
-    def set_current_position(self, delta_distance):
+    def set_current_position(self, DELTA_distance):
         '''
         Track current absolute position.
             This uses the internal encoder/hall sensor on the actuator.
@@ -131,36 +176,9 @@ class admittance_type:
             Args: 
                 delta_distance [mm]: data from position sensor (encoder/hall)
         '''
-        self.pos_now = self.pos_init_absolute + delta_distance
+        self.pos_now = self.pos_init_absolute + DELTA_distance
 
-    def set_force_window(self, sensor_window):
-        '''
-        Setting the number of data reading from load cell
-            Args: 
-                sensor_window []: data size to look at sensor reading
-            '''
-        self.sensorWindow = sensor_window
-    
-    def haptic_rendering(self, sysModel, sensor_input):
-        '''
-        ADMITTANCE-type device algorithm (mass-spring-damper)
-            1. read force of the user
-            2. calculate the resulting position
-            3. send corresponding position to low level controller
-                (in other words, send how much 
-                delta position the motor must move)
-            4. CHANGE virtual environment STATE 
 
-            Args:
-                sysModel [sys (mm)]: system model
-                sensor_input [sensor (N)]: sensor object as the input of the system   
-        '''
-        # Step 1 & 2
-        sysModel.calculate_position_target(sensor_input)
-
-        # Step 3 & 4
-        sysModel.set_current_position(sysModel.pos_out0)
-        return sysModel # system model @ t = n
 
     #------------------------------------------------------
     # Application specific functions (assistive training)
@@ -168,9 +186,18 @@ class admittance_type:
 
     # code here
 
-    #------------------
-    # "Get" functions
-    #------------------
+    #--------------------------
+    # Mischellaneous functions
+    #--------------------------
+    
+    def set_force_window(self, sensor_window):
+        '''
+        Setting the number of data reading from load cell
+            Args: 
+                sensor_window []: data size to look at sensor reading
+            '''
+        self.sensorWindow = sensor_window
+        
     def get_current_force_reading(self):
         return self.force_in0
     
@@ -178,7 +205,7 @@ class admittance_type:
         return self.pos_now
 
 
-def command_actuator(system_admittance):
+def command_actuator(target_delta_distance):
     '''
     Send command to low-level controller to move the motor at 
         "delta" position. The command is not absolute position, 
@@ -186,8 +213,12 @@ def command_actuator(system_admittance):
         
         Args:    
     '''
+    # Momentary placeholder, end program is not like this.
+    # Actual implementation will have the low level controller
+    # send the "actual delta distance" through serial to the SBC.
+    actual_delta_distance = target_delta_distance
     
-    return 0
+    return actual_delta_distance
 
 
 def initial_diagnostics(forceSensor, distanceSensor, window): 
@@ -221,7 +252,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
             time.sleep(1)
             
             
-    print("Force detected: ",round(forceSensor.get_weight_mean(window)/1000,1), " N")
+    print("Force detected: ",round(forceSensor.get_weight_mean(window)/1000,2), " N")
     print(" ")
     print("Standing by...")
     print(" ")
