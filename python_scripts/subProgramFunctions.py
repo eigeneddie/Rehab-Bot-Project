@@ -277,11 +277,9 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
         print(dist_okay)
     '''
     #=====================================================
-    print("\n")
     print("Sensors: Nominal")
     print(" ")
     print("==========================")
-    print(" ")
     print(" ")
     
 

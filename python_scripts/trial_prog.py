@@ -33,7 +33,7 @@ import numpy as np
 # - load sensor
 #doutPin = 20
 #pdSCKPin = 21
-weightMeanWindow = 20
+weightMeanWindow = 1
 pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 ~= 1000 gram
 
 # - distance sensor
@@ -57,7 +57,7 @@ distance_sensor = 1 # let's just leave this out for the mean time
 
 # 3. Other global variables
 deviceLocation = '/dev/ttyACM0' # port in raspi
-freqSample = 200 # [Hz] system operating frequency 500 Hz rencananya
+freqSample = 10#200.0 # [Hz] system operating frequency 500 Hz rencananya
 sample_period = 1/freqSample
 ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
 
@@ -79,8 +79,8 @@ den_semi_3 = [10, 0.7] # [N.s/mm, N/mm]
 # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
 #----------------------------
 # Option 1, 2, 3
-den_full_1 = [1, 5] # [N.s/mm, N/mm]
-den_full_2 = [1, 0.6] # [N.s/mm, N/mm]
+den_full_1 = [10, 5] # [N.s/mm, N/mm]
+den_full_2 = [50, 5] # [N.s/mm, N/mm]
 den_full_3 = [5, 0.8] # [N.s/mm, N/mm]
 
 # trial variables
@@ -138,9 +138,10 @@ def semi_active_mode(activationCode, force_sensor):
     print(" ")
 
     sysModel.set_force_window(weightMeanWindow)    
-    start_loop = time.time()
+    
     time_count = 0
     while not stopCondition:
+        start_loop = time.time()
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
         #time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
@@ -253,9 +254,10 @@ def isotonic_training(activationCode, force_sensor):
     print(" ")
 
     sysModel.set_force_window(weightMeanWindow)    
-    start_loop = time.time()
+    start_code = time.time()
     time_count = 0
     while not stopCondition:
+        start_loop = time.time()
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
         #time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
@@ -268,7 +270,7 @@ def isotonic_training(activationCode, force_sensor):
         capture_time = time.time()
         
         if (time_count>under_sample_time):
-            print("Input Force: ", round(sysModel.force_in0,2), " N. Target position: ", round(sysModel.pos_now,2), " mm.")
+            print("Input Force: ", round(sysModel.force_in0,2), " N. Target position: ", round(sysModel.pos_now,2), " mm. Time: ", round(time.time()-start_code,2))
             time_count = 0
             
         if command == "-s":
@@ -296,9 +298,10 @@ def isometric_training(activationCode, force_sensor): # Position Control
     print(" ")
     
     sysModel.set_force_window(weightMeanWindow)    
-    start_loop = time.time()
+    
     time_count = 0
     while not stopCondition:
+        start_loop = time.time()
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
         #time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
@@ -318,6 +321,8 @@ def isometric_training(activationCode, force_sensor): # Position Control
            
         time_count = time_count + sample_period
         
+        #print(sample_period - ((time.time()-start_loop)%sample_period))
+        print(time.time()-start_loop)
         time.sleep(abs(sample_period - ((time.time()-start_loop)%sample_period)))
         
 def admittance2_constants(admittanceCode): 
@@ -353,7 +358,7 @@ if __name__=="__main__":
             '''
             # ====== STEP 2. SYSTEM SELECTION =======
             print("Step 2. System selection\n")
-            time.sleep(2)
+            time.sleep(1)
             print("Standby mode ....waiting user input")
             standby_mode = True
 
