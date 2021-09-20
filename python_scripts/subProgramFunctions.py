@@ -57,7 +57,7 @@ class admittance_type:
         # Variables to be changed later (not during) __init__:
         self.pos_init_absolute = 0
         self.pos_now = 0
-        self.sensorWindow = 20
+        self.sensorWindow = 1
         
         # Variable for storing force and position data
         self.force_data = []

@@ -198,8 +198,44 @@ def isotonic_training(activationCode, force_sensor):
     start_code = time.time()
     
     time_count = 0.0
-    start_us = time.time()
-    while not stopCondition:
+    
+    print("GO")
+    start_1 = time.time()
+    pos_setpoint = sysModel.haptic_rendering_1()
+    print(time.time()-start_1)
+    actual_pos = spf.command_actuator(pos_setpoint)
+    sysModel.haptic_rendering_2(actual_pos)
+    command = spf.serial_routine(ser_command)        
+    time.sleep(sample_period - (time.time()-start_1))
+    
+    start_1 = time.time()
+    pos_setpoint = sysModel.haptic_rendering_1()
+    print(time.time()-start_1)
+    actual_pos = spf.command_actuator(pos_setpoint)
+    sysModel.haptic_rendering_2(actual_pos)
+    command = spf.serial_routine(ser_command)
+    print(time.time()-start_1)
+    time.sleep(sample_period - (time.time()-start_1))
+    
+    start_1 = time.time()
+    pos_setpoint = sysModel.haptic_rendering_1()
+    print(time.time()-start_1)
+    actual_pos = spf.command_actuator(pos_setpoint)
+    sysModel.haptic_rendering_2(actual_pos)
+    command = spf.serial_routine(ser_command)
+    print(time.time()-start_1)
+    time.sleep(sample_period - (time.time()-start_1))
+    
+    start_1 = time.time()
+    pos_setpoint = sysModel.haptic_rendering_1()
+    print(time.time()-start_1)
+    actual_pos = spf.command_actuator(pos_setpoint)
+    sysModel.haptic_rendering_2(actual_pos)
+    command = spf.serial_routine(ser_command)
+    print(time.time()-start_1)
+    time.sleep(sample_period - (time.time()-start_1))
+    
+    '''while not stopCondition:
         start_loop = time.time()
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
@@ -212,20 +248,20 @@ def isotonic_training(activationCode, force_sensor):
         command = spf.serial_routine(ser_command)
         capture_time = time.time()
         
-        if ((capture_time-start_us)>under_sample_time):
+        if (time_count>under_sample_time):
             print("Input Force: ", round(sysModel.force_in0,2),
                   " N. Target position: ", round(sysModel.pos_now,2),
-                  " mm. Time: ", capture_time-start_code,
+                  " mm. Time: ", time_count,
                   " s. One loop execution: ", round(time.time()-start_loop, 5),
                   " s. Sample time: ", sample_period, " s.") #time.time()-start_loop, 5
             
-            start_us = time.time()
+            time_count = 0
             
         if command == "-s":
             stopCondition = True
            
-        
-        #time.sleep(sample_period - (time.time()-start_loop))
+        time_count = time_count + sample_period
+        time.sleep(sample_period - (time.time()-start_loop))'''
         
 def isometric_training(activationCode, force_sensor): # Position Control
     stopCondition = False
@@ -259,7 +295,7 @@ def isometric_training(activationCode, force_sensor): # Position Control
         sysModel.haptic_rendering_2(actual_pos)
         command = spf.serial_routine(ser_command)
         capture_time = time.time()
-        if (capture_time-start_code>under_sample_time):
+        if (time_count>under_sample_time):
             print("Input Force: ", round(sysModel.force_in0,2), " N. Target position: ", round(sysModel.pos_now,2), " mm.")
             time_count = 0
             
@@ -322,7 +358,7 @@ if __name__=="__main__":
 
         # 3. Other global variables
         deviceLocation = '/dev/ttyACM0' # port in raspi
-        freqSample = 10.0 #15.0#200.0 # [Hz] system operating frequency 500 Hz rencananya
+        freqSample = 30.0 #15.0#200.0 # [Hz] system operating frequency 500 Hz rencananya
         sample_period = 1/freqSample
         ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
 
@@ -409,4 +445,5 @@ if __name__=="__main__":
         GPIO.cleanup() # this ensures a clean exit  
         print("shutting program down...")
         time.sleep(2)
+
 
