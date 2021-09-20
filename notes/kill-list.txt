@@ -1,0 +1,22 @@
+System kill list for (most of it tackled by Thursday, 23-09-2021):
+
+1. distance sensor absolute position init
+2. stepper motor step-dir trial directly from raspi (try looking at that python library)
+3. stepper, raspi position update at 10 Hz like what's achievable now (must work on it at 21-09-21)
+4. semi-active algorithm implementation in position calculation
+5. if possible, try to modify load cell code for faster reading (thus faster system update time)
+
+slightly ambiguous goals:
+-for full passive program, try look at ME327 with relations to model of 1DOF system
+-also try to figure out how to calculate femur length
+-
+
+Additional notes:
+1. it's obvious but just to make sure you (eddie) undestand, time sampling (implemented on machine) and the time sample model of a z transform has to be the same.
+2. think about safety mechanisms and other details so that the machine operates smoothly and graciously (in terms of starting, operating, and exiting)
+3. 
+
+
+issues: 
+1. load cell code reads too slow (causes a loop execution time of 0.08 s), but we should make sure whether the system looping frequency matters too much
+2. 
