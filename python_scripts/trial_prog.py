@@ -28,7 +28,7 @@ import argparse
 
 
 # =================================================================
-# ==================2. MAIN SYSTEM FUNCTIONS=======================
+# ==================1. MAIN SYSTEM FUNCTIONS=======================
 # =================================================================
 
 # 1. selection of rehabilitation mode
@@ -410,3 +410,4 @@ if __name__=="__main__":
         print("shutting program down...")
         time.sleep(2)
 
+#https://www.instructables.com/Raspberry-Pi-Python-and-a-TB6600-Stepper-Motor-Dri/

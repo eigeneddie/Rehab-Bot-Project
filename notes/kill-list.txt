@@ -3,8 +3,12 @@ System kill list for (most of it tackled by Thursday, 23-09-2021):
 1. distance sensor absolute position init
 2. stepper motor step-dir trial directly from raspi (try looking at that python library)
 3. stepper, raspi position update at 10 Hz like what's achievable now (must work on it at 21-09-21)
+    ->CAUTION: raspberry pi logic level DON'T SCREW UP THE PI
 4. semi-active algorithm implementation in position calculation
+    ->Reference the paper and undestand the algorithm
 5. if possible, try to modify load cell code for faster reading (thus faster system update time)
+    ->For now, let's just work with update time of 10 Hz (10 data updates per second), and let's see
+      what will happen system-wise
 
 slightly ambiguous goals:
 -for full passive program, try look at ME327 with relations to model of 1DOF system

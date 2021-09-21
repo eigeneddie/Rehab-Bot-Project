@@ -28,7 +28,7 @@ import argparse
 
 
 # =================================================================
-# ==================2. MAIN SYSTEM FUNCTIONS=======================
+# ==================1. MAIN SYSTEM FUNCTIONS=======================
 # =================================================================
 
 # 1. selection of rehabilitation mode
@@ -40,7 +40,11 @@ def run_rehab_program(activationCode, force_sensor):
         semi_active_mode(activationCode, force_sensor)
     elif activationCode[0] == '3':
         full_active_mode(activationCode, force_sensor)     
-    
+
+#----------------------------
+# 1. For FULL-PASSIVE program
+#----------------------------
+
 def passive_mode(activationCode): 
     return 0
 
@@ -317,77 +321,81 @@ def admittance2_constants(admittanceCode):
     }
     return damper_spring_pair.get(admittanceCode)
 
-    
+
+        
+# =================================================================
+# ==============0. CONFIGURING GLOBAL CONSTANTS====================
+# =================================================================
+
+# 1. pin assignments GPIO
+# - load sensor
+#doutPin = 20
+#pdSCKPin = 21
+weightMeanWindow = 1
+pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 ~= 1000 gram
+
+# - distance sensor
+trigger = 23
+echo = 24
+
+# - potensiometer. 
+potAngleAnalogIn = 17 # check again
+
+# 2. Configuring sensors
+#   a. Force sensor
+GPIO.setmode(GPIO.BCM) 
+force_sensor = HX711(dout_pin=20, pd_sck_pin=21)
+force_sensor.set_scale_ratio(pre_SetRatio)  # set ratio for current channel
+
+#   b. Distance sensor
+#distance_sensor = DistanceSensor(trigger, echo)
+distance_sensor = 1 # let's just leave this out for the mean time
+
+#   c. knee angle sensor
+
+# 3. Other global variables
+deviceLocation = '/dev/ttyACM0' # port in raspi
+freqSample = 10.0 #15.0#200.0 # [Hz] system operating frequency 500 Hz rencananya
+sample_period = 1/freqSample
+ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
+
+under_sample_time = 2.0
+'''ser_command.flushInput()
+ser_command.flush()
+ser_command.flushOutput()
+'''
+#----------------------------
+# A. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS
+#----------------------------
+# CAUTION: Transfer function is X[mm]/F[N/mm]!!
+# Option 1, 2, 3
+den_semi_1 = [1, 0.5] # [N.s/mm, N/mm]
+den_semi_2 = [1, 0.2] # [N.s/mm, N/mm]
+den_semi_3 = [10, 0.7] # [N.s/mm, N/mm]
+
+#----------------------------
+# B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
+#----------------------------
+# Option 1, 2, 3
+den_full_1 = [10, 5] # [N.s/mm, N/mm]
+den_full_2 = [50, 5] # [N.s/mm, N/mm]
+den_full_3 = [5, 0.8] # [N.s/mm, N/mm]
+
+# trial variables
+
+force_data_so_far = []
+position_data_so_far = []
+
+
 # =================================================================
 # ====================4. RUNNING MAIN PROGRAM =====================
 # =================================================================
 
+
 # Running main program 
 if __name__=="__main__":
     try:
-        
-        # =================================================================
-        # ==============0. CONFIGURING GLOBAL CONSTANTS====================
-        # =================================================================
 
-        # 1. pin assignments GPIO
-        # - load sensor
-        #doutPin = 20
-        #pdSCKPin = 21
-        weightMeanWindow = 1
-        pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 ~= 1000 gram
-
-        # - distance sensor
-        trigger = 23
-        echo = 24
-
-        # - potensiometer. 
-        potAngleAnalogIn = 17 # check again
-
-        # 2. Configuring sensors
-        #   a. Force sensor
-        GPIO.setmode(GPIO.BCM) 
-        force_sensor = HX711(dout_pin=20, pd_sck_pin=21)
-        force_sensor.set_scale_ratio(pre_SetRatio)  # set ratio for current channel
-
-        #   b. Distance sensor
-        #distance_sensor = DistanceSensor(trigger, echo)
-        distance_sensor = 1 # let's just leave this out for the mean time
-
-        #   c. knee angle sensor
-
-        # 3. Other global variables
-        deviceLocation = '/dev/ttyACM0' # port in raspi
-        freqSample = 30.0 #15.0#200.0 # [Hz] system operating frequency 500 Hz rencananya
-        sample_period = 1/freqSample
-        ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
-
-        under_sample_time = 2.0
-        '''ser_command.flushInput()
-        ser_command.flush()
-        ser_command.flushOutput()
-        '''
-        #----------------------------
-        # A. SEMI-ASSISTIVE ADMITTANCE SYSTEM OPTIONS
-        #----------------------------
-        # CAUTION: Transfer function is X[mm]/F[N/mm]!!
-        # Option 1, 2, 3
-        den_semi_1 = [1, 0.5] # [N.s/mm, N/mm]
-        den_semi_2 = [1, 0.2] # [N.s/mm, N/mm]
-        den_semi_3 = [10, 0.7] # [N.s/mm, N/mm]
-
-        #----------------------------
-        # B. FULL-ACTIVE ADMITTANCE SYSTEM OPTIONS
-        #----------------------------
-        # Option 1, 2, 3
-        den_full_1 = [10, 5] # [N.s/mm, N/mm]
-        den_full_2 = [50, 5] # [N.s/mm, N/mm]
-        den_full_3 = [5, 0.8] # [N.s/mm, N/mm]
-
-        # trial variables
-
-        force_data_so_far = []
-        position_data_so_far = []
         # main loop of program 
         # main_prog()
         # ====== STEP 1. INITIATING SYSTEM DIAGNOSTICS =======
@@ -444,6 +452,6 @@ if __name__=="__main__":
     finally:  
         GPIO.cleanup() # this ensures a clean exit  
         print("shutting program down...")
-        time.sleep(2)
+        time.sleep(1)
 
 

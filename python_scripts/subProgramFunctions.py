@@ -197,13 +197,6 @@ class admittance_type:
                 sensor_window []: data size to look at sensor reading
             '''
         self.sensorWindow = sensor_window
-        
-    def get_current_force_reading(self):
-        return self.force_in0
-    
-    def get_current_position(self):
-        return self.pos_now
-
 
 def command_actuator(target_delta_distance):
     '''
@@ -256,7 +249,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
     print(" ")
     print("Standing by...")
     print(" ")
-    time.sleep(2) # standing by
+    time.sleep(1) # standing by
     
     '''
     # b. Distance sensor (HC-SR04 ultrasonic)
