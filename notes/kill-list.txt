@@ -25,5 +25,12 @@ Additional notes:
 issues: 
 1. load cell code reads too slow (causes a loop execution time of 0.08 s), but we should make sure whether the system looping frequency matters too much
 2. usb virtual com port needs to be static
-3. 20210924 IMPORTANT: load cell reading sometimes false read to a huge number (200 N or false even when there is no load applied to the load cell). THis makes x calculation jumps (DANGEROUS)
-4.
+3. 20210924 IMPORTANT: load cell recading sometimes false read to a huge number (200 N or false even when there is no load applied to the load cell). THis makes x calculation jumps (DANGEROUS)
+4. load cell reading problem: if you rush it, it's gonna work longer.
+    if you don't rush it, it will work faster than expected.
+
+get_weight_mean
+    --> get_raw_data_mean (output int || bool)
+        -->_read
+            --> (output int || bool)
+            --> _ready --> problem maybe from getting ready (dout to be Low at start)
