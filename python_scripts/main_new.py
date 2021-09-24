@@ -208,7 +208,7 @@ def isotonic_training(activationCode, force_sensor):
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
         pos_setpoint = sysModel.haptic_rendering_1()
-        actual_pos = spf.command_actuator(pos_setpoint)
+        actual_pos = spf.command_actuator(pos_setpoint, ser_act)
         sysModel.haptic_rendering_2(actual_pos)
         command = spf.serial_routine(ser_command)
         capture_time = time.time()
@@ -229,7 +229,7 @@ def isotonic_training(activationCode, force_sensor):
             stopCondition = True
            
         
-        time.sleep(sample_period - (time.time()-start_loop))
+        time.sleep(abs(sample_period - (time.time()-start_loop)))
         
 def isometric_training(activationCode, force_sensor): # Position Control
     stopCondition = False
@@ -259,7 +259,7 @@ def isometric_training(activationCode, force_sensor): # Position Control
         # this time library attempts to make the system sampling frequency
         # consistent at about "freqSample"
         pos_setpoint = sysModel.haptic_rendering_1()
-        actual_pos = spf.command_actuator(pos_setpoint)
+        actual_pos = spf.command_actuator(pos_setpoint, ser_act)
         sysModel.haptic_rendering_2(actual_pos)
         command = spf.serial_routine(ser_command)
         capture_time = time.time()
@@ -329,8 +329,8 @@ if __name__=="__main__":
         deviceLocation2 = '/dev/ttyACM1'
         freqSample = 10.0 #15.0#200.0 # [Hz] system operating frequency 500 Hz rencananya
         sample_period = 1/freqSample
-        ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
-
+        ser_command = serial.Serial(deviceLocation, 9600, timeout=0.5) # initialize serial
+        ser_act = serial.Serial(deviceLocation2, 9600, timeout=0.5)
         under_sample_time = 2.0
         '''ser_command.flushInput()
         ser_command.flush()
@@ -413,6 +413,6 @@ if __name__=="__main__":
     finally:  
         GPIO.cleanup() # this ensures a clean exit  
         print("shutting program down...")
-        time.sleep(2)
+        time.sleep(1)
 
 #https://www.instructables.com/Raspberry-Pi-Python-and-a-TB6600-Stepper-Motor-Dri/

@@ -198,7 +198,7 @@ class admittance_type:
             '''
         self.sensorWindow = sensor_window
 
-def command_actuator(target_delta_distance):
+def command_actuator(target_delta_distance, serial_object):
     '''
     Send command to low-level controller to move the motor at 
         "delta" position. The command is not absolute position, 
@@ -209,6 +209,11 @@ def command_actuator(target_delta_distance):
     # Momentary placeholder, end program is not like this.
     # Actual implementation will have the low level controller
     # send the "actual delta distance" through serial to the SBC.
+    #actual_delta_distance = target_delta_distance
+    #actuator_command = serial.Serial(deviceLocation, 115200, timeout=1)
+    pulse = int(target_delta_distance*1/8.0*400.0)
+    
+    serial_object.write((str(pulse)+'\n').encode('utf-8'))
     actual_delta_distance = target_delta_distance
     
     return actual_delta_distance

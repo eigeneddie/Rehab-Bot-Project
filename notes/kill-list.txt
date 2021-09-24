@@ -23,4 +23,4 @@ Additional notes:
 
 issues: 
 1. load cell code reads too slow (causes a loop execution time of 0.08 s), but we should make sure whether the system looping frequency matters too much
-2. 
+2. usb virtual com port needs to be static
