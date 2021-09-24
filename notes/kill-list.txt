@@ -18,9 +18,12 @@ slightly ambiguous goals:
 Additional notes:
 1. it's obvious but just to make sure you (eddie) undestand, time sampling (implemented on machine) and the time sample model of a z transform has to be the same.
 2. think about safety mechanisms and other details so that the machine operates smoothly and graciously (in terms of starting, operating, and exiting)
-3. 
+3. 20210924 IMPORTANT: after every time rehabilitation training exits, send the position_data and force_data elsewhere for viewing
+4. 
 
 
 issues: 
 1. load cell code reads too slow (causes a loop execution time of 0.08 s), but we should make sure whether the system looping frequency matters too much
 2. usb virtual com port needs to be static
+3. 20210924 IMPORTANT: load cell reading sometimes false read to a huge number (200 N or false even when there is no load applied to the load cell). THis makes x calculation jumps (DANGEROUS)
+4.

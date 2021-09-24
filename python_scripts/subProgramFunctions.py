@@ -4,6 +4,7 @@ from scipy import signal
 import RPi.GPIO as GPIO
 from gpiozero import DistanceSensor
 # Complimentary functions for the mainProg script
+from datetime import datetime
 
 class admittance_type:
     """
@@ -152,7 +153,7 @@ class admittance_type:
                 NA
             '''
         self.force_in0 = self.gravity*self.force_sensor.get_weight_mean(self.sensorWindow)/1000
-        self.force_data.append(self.force_in0)
+        #self.force_data.append(self.force_in0)
         return self.force_in0
     
 
@@ -294,6 +295,9 @@ def serial_routine(serial_object):
 
     return command # Activation code string to select either the three sub-program
 
-def sensor_interface():
-    return 0
-        
+def csv_name_address (activationCode):
+    today=datetime.now()
+    todaystr = today.strftime("%d%m%Y%_H%M%S")
+    filename = activationCode+todaystr+".csv"
+    path = r"/home/pi/rehabilitationProject/rehab-bot-project-raspi-local/python_scripts/commplementary/"
+    return path, filename

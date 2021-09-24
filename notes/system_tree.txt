@@ -1,0 +1,27 @@
+SYSTEM TREE OF REHAB-BOT
+
+1. user interface: TFT LCD Arduino shield 
+
+2. high-level module (overall system)
+    -> sensor interface (load cell, angle sensor, distance sensor)
+    -> user interface communication (change mode)
+    -> detailed program: passive mode
+        -> kinematic calculation between joints
+        -> Cosine rule of calculating joint angle
+    -> detailed program: assistive mode
+        -> assistive constant
+        -> spring & dampers
+
+    -> detailed program: active mode
+        -> training sub-mode
+        -> spring & dampers
+    
+3. low-level module (actuator)
+    -> execute position control (executed by all modes)
+    -> actual working actuator
+    
+4. mechanical part sisa
+    -> mechanical frame and sensor attachment
+    -> footrest
+    -> cushion for user comfort
+
