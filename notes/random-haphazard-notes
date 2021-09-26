@@ -1,0 +1,4 @@
+Haphazard notes
+
+1. isometric does not need spring-damper parameter: only position control (for the case of stepper, this is very easy: just hold the current position)
+2. isometric menu selection: position 1, 2 or 3, instead of environment 1, 2, 3.
