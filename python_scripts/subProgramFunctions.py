@@ -159,7 +159,9 @@ class admittance_type:
             self.force_in0 = self.force_in1 # just use the previous value
         
     
-
+    def force_median_filter():
+        return 0
+    
     def set_initial_position(self, INIT_distance):
         '''
         Reading the current distance of slider in the 

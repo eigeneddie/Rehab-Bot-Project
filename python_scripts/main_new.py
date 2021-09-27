@@ -302,7 +302,7 @@ if __name__=="__main__":
         #doutPin = 20
         #pdSCKPin = 21
         weightMeanWindow = 1
-        pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 ~= 1000 gram
+        pre_SetRatio = 220693/1000#231052/1000 # based on raw data--> 231052, 222489 ~= 1000 gram
 
         # - distance sensor
         trigger = 23
