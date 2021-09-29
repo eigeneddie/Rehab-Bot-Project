@@ -1,3 +1,11 @@
+// Based on accelstepper library:
+//(http://www.airspayce.com/mikem/arduino/AccelStepper/index.html) 
+// Original example written by Jeremy Fielding:
+// https://github.com/jengineer1/Stepper_Motor_Controller
+// https://youtu.be/QMgckRoRy38
+
+// Script by Edgar B. Sutawika (2021)
+
 #include <AccelStepper.h>
 
 
@@ -11,17 +19,25 @@
 long Motor2position = 0;
 long temp;
 long motor2position2 ;
-int speedmin = 0; //pulses per second
-int speedmax = 4000;  //pulses per second
+
+/* List of Max speed for active mode
+ *  
+ *  2500 pulse/s = 50 mm/s
+ *  1000 pulse/s = 20 mm/s
+ *  750 pulse/s = 15 mm/s
+ *  500 puse/s = 10 mm/s
+ */
+int activeMaxSpeed = 750
+int passiveMaxSpeed = 10000
 
 AccelStepper step2(1, Stepper2Pulse, Stepper2Direction);
 
 
 void setup() {               
-  Serial.begin(9600);
+  Serial.begin(115200);
   //Serial.setTimeout(500);
-  step2.setMaxSpeed (10000);  
-  step2.setSpeed(5000);
+  step2.setMaxSpeed (activeMaxSpeed);  
+  step2.setSpeed(500);
   step2.setAcceleration(10000);
   pinMode(Stepper2Pulse, OUTPUT);
   pinMode(Stepper2Direction, OUTPUT);
