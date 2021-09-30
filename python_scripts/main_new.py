@@ -350,7 +350,7 @@ if __name__=="__main__":
         # Option 1, 2, 3
         den_full_1 = [1, 5] # [N.s/mm, N/mm]
         den_full_2 = [0.2, 0.05] # [N.s/mm, N/mm]
-        den_full_3 = [0.5, 0.05] # [N.s/mm, N/mm]
+        den_full_3 = [0.2, 0.03] # [N.s/mm, N/mm]
 
         # trial variables
 
