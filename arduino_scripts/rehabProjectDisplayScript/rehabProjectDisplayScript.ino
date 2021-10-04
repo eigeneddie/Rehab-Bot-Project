@@ -17,8 +17,23 @@
   * Rehab-bot modes
   * 
   * 1. Passive: not written yet (20210901)
-  * 
-  * 
+  *   Passive control is done mostly within the arduino module (low-level module)
+  *   High level module (raspberry pi) only computes and sends out control parameters for arduino to execute.
+  *   Arduino does a predetermined trajectory routine in a certain amount of time.
+  *   
+  *   key working of passive mode: 
+  *     a. 
+  *   
+  *   main menu for passive control:
+  *     set current angle (controlled live from LCD TFT with a preset speed)
+  *     max knee angle
+  *     min knee angle
+  *     speed duration
+  *     duration
+  *     
+  *     When the routine begins, the device goes to minimum angle, and starts the routine
+  *     
+  *     
   * ===========================================
   * for active control, activation code is as follow:
   *   current page number - sub-option 1 - sub-option 2 
@@ -30,10 +45,9 @@
   *   2 - 0 - 2
   *   2 - 1 - 0
   *   2 - 1 - 1
-  *   2 - 1
-  *   .
-  *   . 
-  *   
+  *   2 - 1 - 2
+  *   2 - 2 - 0
+  *   2 - 2 - 1
   *   2 - 2 - 2
   *   
   * 3. Full-active:

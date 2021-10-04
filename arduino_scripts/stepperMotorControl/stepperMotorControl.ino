@@ -32,7 +32,7 @@ char receivedCommand;
 //-------------------------------------------------------------------------------
 int directionMultiplier = 1; // = 1: positive direction, = -1: negative direction
 bool newData, runallowed = false; // booleans for new data from serial, and runallowed flag
-AccelStepper stepper(1, 8, 9);// direction Digital 9 (CCW), pulses Digital 8 (CLK)
+AccelStepper stepper(1, 7, 8);// direction Digital 9 (CCW), pulses Digital 8 (CLK)
  
 void setup()
 {
