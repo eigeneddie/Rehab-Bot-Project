@@ -1,1 +1,1 @@
-re simulate the system for less than 0.1 Hz
+re simulate the system for less than 0.1 Hz to have better resolution on mechanism comparison between 4 bar and 6 bar
