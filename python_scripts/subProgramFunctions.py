@@ -4,6 +4,7 @@ from scipy import signal
 import RPi.GPIO as GPIO
 from gpiozero import DistanceSensor
 # Complimentary functions for the mainProg script
+from datetime import datetime
 
 class admittance_type:
     """
@@ -107,8 +108,7 @@ class admittance_type:
         '''
         
         # Step 1. Read force of user
-        self.force_in0 = self.new_force_reading()
-        self.force_data.append(self.force_in0)
+        self.new_force_reading()
         
         # Step 2. calculate target position
         position_term = self.a_i[1]*self.pos_out1
@@ -135,6 +135,7 @@ class admittance_type:
         
         # Step 4   
         self.set_current_position(delta_dist_actual)
+        self.force_data.append(self.force_in0)
         self.position_data.append(self.pos_now)
                 
         # save temporary state 
@@ -152,10 +153,15 @@ class admittance_type:
                 NA
             '''
         self.force_in0 = self.gravity*self.force_sensor.get_weight_mean(self.sensorWindow)/1000
-        self.force_data.append(self.force_in0)
-        return self.force_in0
+        #self.force_data.append(self.force_in0)
+        
+        if self.force_in0 == False: # if load cell reading suddenly become invalid
+            self.force_in0 = self.force_in1 # just use the previous value
+        
     
-
+    def force_median_filter():
+        return 0
+    
     def set_initial_position(self, INIT_distance):
         '''
         Reading the current distance of slider in the 
@@ -249,7 +255,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
             print("-Load cell NOMINAL\n")
             time.sleep(1)
             
-            
+    window2 = window*30
     print("Force detected: ",round(forceSensor.get_weight_mean(window)/1000,2), " N")
     print(" ")
     print("Standing by...")
@@ -294,6 +300,9 @@ def serial_routine(serial_object):
 
     return command # Activation code string to select either the three sub-program
 
-def sensor_interface():
-    return 0
-        
+def csv_name_address (activationCode):
+    today=datetime.now()
+    todaystr = today.strftime("%d%m%Y%_H%M%S")
+    filename = activationCode+todaystr+".csv"
+    path = r"/home/pi/rehabilitationProject/rehab-bot-project-raspi-local/python_scripts/commplementary/"
+    return path, filename

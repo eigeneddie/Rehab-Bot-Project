@@ -1,0 +1,11 @@
+NOTES and Kill list 27092021
+
+1. use median filter for force reading in admittancetype.haptic_rendering function
+    use previous data reading to smoothen things out (either lowpass filter or median filter.
+    
+2. assistive control regime:
+       -> setting target displacement (say 300 mm from initial position)
+       -> assistive control kicks in if the target displacement won't be achieved in next cycle
+           Question: how will we determined if target displacement won't be achienved?
+       ->
+3. Distance sensor for absolute positioning

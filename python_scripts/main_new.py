@@ -22,10 +22,9 @@ import serial
 import time
 
 import numpy as np
-#import pandas as pd
+import pandas as pd
 #import matplotlib.pyplot as plt
 import argparse
-
 
 # =================================================================
 # ==================1. MAIN SYSTEM FUNCTIONS=======================
@@ -158,10 +157,6 @@ def full_active_mode(activationCode, force_sensor):
         3. send corresponding force to motor
         4. change virtual environment of state
     '''
-    #strength_option, serial_object, admittanceCode, 
-    #                         force_input, position_output, force_sensor): 
-    # full-active training selection (position or admittance control)
-    
     if activationCode[1] == "0":
         isotonic_training(activationCode, force_sensor)
     elif activationCode[1] =="1":
@@ -227,6 +222,10 @@ def isotonic_training(activationCode, force_sensor):
             
         if command == "-s":
             stopCondition = True
+            trainData = {'force': sysModel.force_data, 'position': sysModel.position_data}
+            rehab_data = pd.DataFrame(trainData)
+            save_path, csvname = spf.csv_name_address(activationCode)
+            rehab_data.to_csv(save_path+csvname)
            
         
         time.sleep(abs(sample_period - (time.time()-start_loop)))
@@ -303,7 +302,7 @@ if __name__=="__main__":
         #doutPin = 20
         #pdSCKPin = 21
         weightMeanWindow = 1
-        pre_SetRatio = 231052/1000 # based on raw data--> 231052, 222489 ~= 1000 gram
+        pre_SetRatio = 220693/1000#231052/1000 # based on raw data--> 231052, 222489 ~= 1000 gram
 
         # - distance sensor
         trigger = 23
@@ -330,7 +329,7 @@ if __name__=="__main__":
         freqSample = 10.0 #15.0#200.0 # [Hz] system operating frequency 500 Hz rencananya
         sample_period = 1/freqSample
         ser_command = serial.Serial(deviceLocation, 9600, timeout=0.5) # initialize serial
-        ser_act = serial.Serial(deviceLocation2, 9600, timeout=0.5)
+        ser_act = serial.Serial(deviceLocation2, 115200, timeout=0.5)
         under_sample_time = 2.0
         '''ser_command.flushInput()
         ser_command.flush()
@@ -351,7 +350,7 @@ if __name__=="__main__":
         # Option 1, 2, 3
         den_full_1 = [1, 5] # [N.s/mm, N/mm]
         den_full_2 = [0.2, 0.05] # [N.s/mm, N/mm]
-        den_full_3 = [0.5, 0.05] # [N.s/mm, N/mm]
+        den_full_3 = [0.2, 0.03] # [N.s/mm, N/mm]
 
         # trial variables
 

@@ -204,41 +204,20 @@ def isotonic_training(activationCode, force_sensor):
     time_count = 0.0
     
     print("GO")
-    start_1 = time.time()
-    pos_setpoint = sysModel.haptic_rendering_1()
-    print(time.time()-start_1)
-    actual_pos = spf.command_actuator(pos_setpoint)
-    sysModel.haptic_rendering_2(actual_pos)
-    command = spf.serial_routine(ser_command)        
-    time.sleep(sample_period - (time.time()-start_1))
+    for x in range(6):
+        start_1 = time.time()
+        pos_setpoint = sysModel.haptic_rendering_1()
+        
+        pos_setpoint = 1
+        actual_pos = spf.command_actuator(pos_setpoint, ser_act)
+        sysModel.haptic_rendering_2(actual_pos)
+        command = spf.serial_routine(ser_command)
+        print(time.time()-start_1)
+        time.sleep(sample_period - (time.time()-start_1))
     
-    start_1 = time.time()
-    pos_setpoint = sysModel.haptic_rendering_1()
-    print(time.time()-start_1)
-    actual_pos = spf.command_actuator(pos_setpoint)
-    sysModel.haptic_rendering_2(actual_pos)
-    command = spf.serial_routine(ser_command)
-    print(time.time()-start_1)
-    time.sleep(sample_period - (time.time()-start_1))
     
-    start_1 = time.time()
-    pos_setpoint = sysModel.haptic_rendering_1()
-    print(time.time()-start_1)
-    actual_pos = spf.command_actuator(pos_setpoint)
-    sysModel.haptic_rendering_2(actual_pos)
-    command = spf.serial_routine(ser_command)
-    print(time.time()-start_1)
-    time.sleep(sample_period - (time.time()-start_1))
     
-    start_1 = time.time()
-    pos_setpoint = sysModel.haptic_rendering_1()
-    print(time.time()-start_1)
-    actual_pos = spf.command_actuator(pos_setpoint)
-    sysModel.haptic_rendering_2(actual_pos)
-    command = spf.serial_routine(ser_command)
-    print(time.time()-start_1)
-    time.sleep(sample_period - (time.time()-start_1))
-    
+    print("DONE")
     '''while not stopCondition:
         start_loop = time.time()
         # this time library attempts to make the system sampling frequency
@@ -355,10 +334,11 @@ distance_sensor = 1 # let's just leave this out for the mean time
 
 # 3. Other global variables
 deviceLocation = '/dev/ttyACM0' # port in raspi
-freqSample = 10.0 #15.0#200.0 # [Hz] system operating frequency 500 Hz rencananya
+deviceLocation2 = '/dev/ttyACM1'
+freqSample = 100.0 #15.0#200.0 # [Hz] system operating frequency 500 Hz rencananya
 sample_period = 1/freqSample
-ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
-
+ser_command = serial.Serial(deviceLocation, 9600, timeout=0.5) # initialize serial
+ser_act = serial.Serial(deviceLocation2, 115200, timeout=0.5)
 under_sample_time = 2.0
 '''ser_command.flushInput()
 ser_command.flush()

@@ -27,8 +27,10 @@ long motor2position2 ;
  *  750 pulse/s = 15 mm/s
  *  500 puse/s = 10 mm/s
  */
+
 int activeMaxSpeed = 750;
 int passiveMaxSpeed = 10000;
+
 
 AccelStepper step2(1, Stepper2Pulse, Stepper2Direction);
 
@@ -37,7 +39,8 @@ void setup() {
   Serial.begin(115200);
   //Serial.setTimeout(500);
   step2.setMaxSpeed (activeMaxSpeed);  
-  step2.setSpeed(1000);
+  step2.setSpeed(500);
+
   step2.setAcceleration(10000);
   pinMode(Stepper2Pulse, OUTPUT);
   pinMode(Stepper2Direction, OUTPUT);

@@ -1,0 +1,31 @@
+Haphazard notes
+
+1. isometric does not need spring-damper parameter: only position control (for the case of stepper, this is very easy: just hold the current position)
+2. isometric menu selection: position 1, 2 or 3, instead of environment 1, 2, 3.
+3. figure out a way to independently measure position for system testing
+4. monday/tueday, let's try if there's no damping and underdamped system (expected to have oscillations)
+5. review intuition of PID (will be used for designing the passive mode controller). root locus may be an option as well. but who knows.
+
+6. assistive mode: the system detects the trajectory. when the system detects that the force provided
+  by patient is not enough to achieve said trajectory, an assistive control is engaged
+7. start writing the assistive control term in the raspberry pi program.
+
+
+For thesis document
+------------------
+analysis flow: 
+1. DRO (translating requirement to achievable objectives)
+2. design strategy
+3. mechanism selection: (energy consideration), conclusion: no difference, choose 4 bar
+4. mechanical design and sizing of components based on what's accessible to the author
+5. design of haptic system: stability of system to choose which is the suitable damping/spring constant
+6. justifying 10 Hz (100 ms) sampling time
+
+
+Testing of device:
+-Given we have a linear sensor to detect the slider distance
+1. Test the compliance control parameters (c, k) in terms of percent error
+    Stiffnes: desired stiffness vs measured stiffness (measured F and m)
+    Damping: desired damping vs measured damping (measured F and v)
+2. How do you apply the force? 
+
