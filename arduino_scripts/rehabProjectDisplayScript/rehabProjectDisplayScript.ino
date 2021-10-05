@@ -28,8 +28,12 @@
   *     set current angle (controlled live from LCD TFT with a preset speed)
   *     max knee angle
   *     min knee angle
-  *     speed duration
+  *     speed duration --> set Constant speed in stepper accel
   *     duration
+  *     recalculate button
+  *     
+  *     For passive mode, there's a lot of communication between device and User interface
+  *     
   *     
   *     When the routine begins, the device goes to minimum angle, and starts the routine
   *     
@@ -50,6 +54,8 @@
   *   2 - 2 - 1
   *   2 - 2 - 2
   *   
+  *   (9 options)
+  *   
   * 3. Full-active:
   *   current_page_number - ISOMETRIC/ISOTONIC (2 options) - spring damper config (3 options)
   *   3 - 0 - 0 
@@ -59,6 +65,7 @@
   *   3 - 1 - 1
   *   3 - 1 - 2
   * 
+  *   (6 options)
   * 
   */
 
@@ -123,7 +130,12 @@ char currentPage = 0; // 4 option (0, 1, 2, 3)
 //===MODE SPECIFIC ACTIVATION====
 //============CODE===============
 
-//Detail passive mode
+//Detail passive mode (in their initial condition)
+int currentKneeAngle // IC will be sent from the arduino-> raspberry pi->LCD
+int maxKneeAngle = 170 // Default max angle
+int minKneeAngle = 30 // Default min angle
+int rehabSpeed = 10 // Default rehab speed
+int duration = 1// set range (1-60) min
 
 //Detail semi-assistive mode
 int assistConst = 0; // 3 option (can be increased/decreased)
@@ -222,41 +234,85 @@ void homePageMenu(TSPoint p){
 }
 
 void passiveModeMenu(TSPoint p){
-  if(currentPage == 1){
-    if (p.z < MAXPRESSURE && p.z > MINPRESSURE) { 
-      p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
-      p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
-      //readXYLocation(p);
-  
-      // a. If 
-      if ( (p.x > 15) && (p.x < 215) && (p.y > 199 ) && (p.y < 234)) {
-          drawFrame(20, 90, p);
-          currentPage = 1;
-          delay(20);
-          tft.fillScreen(BLACK);
-          //drawPassiveMode();
-      } // end if passive
-  
-      // b. If selected semi-assistive mode
-      if ((p.x > 15) && (p.x < 215) && (p.y > 125 ) && (p.y < 160)) {
-         
-         drawFrame(20, 160, p);
-         currentPage = 2;
-         delay(20);
-         tft.fillScreen(BLACK);
-         //drawSemiActiveMode();
-      } // end if semi-assistive
-  
-      // c. If selected active mode
-      if ( (p.x > 15) && (p.x < 215) && (p.y > 56 ) && (p.y < 91)) {
-          drawFrame(20, 230, p);
-          currentPage = 3;
-          delay(100);
-          tft.fillScreen(BLACK);
-          //drawActiveMode();
-       } // end if active
 
-      } //   
+//int assistConst = 0; // 3 option (can be increased/decreased)
+//int admittance1 = 0; // 3 option (can be increased/decreased)
+//int options_semi_active = 3;
+   if(currentPage == 1){
+    
+      if (p.z < MAXPRESSURE && p.z > MINPRESSURE) { 
+        p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
+        p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
+        //readXYLocation(p);
+    
+        // a. Back button
+        if ((p.x > 19) && (p.x < 215) && (p.y > 247 ) && (p.y < 274) ) {//
+            drawFrame(20, 40, p);
+            currentPage = 0;
+            delay(20);
+            drawHomeScreen();
+            if (activation_passive==true){
+              activation_passive == false;
+            } 
+        } 
+  
+      // b. LEFT ARROW - THREE ASSISTIVE CONSTANTS - RIGHT ARROW
+      
+        if ( (p.x > 188) && (p.x < 219) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr), p);
+           assistConst--;
+           if(assistConst<0){assistConst = 2;}
+           redraw(50, 40+(boxHeightMM+butIncr), assistConst, "CONST.");
+        } 
+        
+        if (( p.x > 19) && (p.x < 42) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 50+(boxHeightMM+butIncr), p);
+           assistConst++;
+           if(assistConst>=options_semi_active){assistConst = 0;}
+           redraw(50, 50+(boxHeightMM+butIncr), assistConst, "CONST.");
+        }
+      
+        //c. LEFT ARROW - ADMITTANCE x - RIGHT ARROW
+        if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 50+(boxHeightMM+butIncr)*2, p);
+           admittance1--;
+           if(admittance1<0){admittance1 = 2;}
+           redraw(50, 50+(boxHeightMM+butIncr)*2, admittance1, "ENV.");
+        } 
+        
+        if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 50+(boxHeightMM+butIncr)*2, p);
+           admittance1++;
+           if(admittance1>=options_semi_active){admittance1 = 0;}
+           redraw(50, 50+(boxHeightMM+butIncr)*2, admittance1, "ENV.");
+        }
+
+        //d. Start & Stop button sequence
+        if ((p.x > 146) && (p.x < 200) && (p.y > 14 ) && (p.y < 40)){
+          startButtonENGAGED();
+          activation_semi_active = true;
+          delay(200);
+          exeCodeSemiActive[0] = currentPage;
+          exeCodeSemiActive[1] = assistConst;
+          exeCodeSemiActive[2] = admittance1;
+          activationCode = generateActivationCodeString(exeCodeSemiActive[0],exeCodeSemiActive[1],exeCodeSemiActive[2]);
+          Serial.println(activationCode);
+        }
+        if ((p.x > 25) && (p.x < 88) && (p.y > 17 ) && (p.y < 45)){
+
+          if (activation_semi_active == true){
+            startButton();
+            stopButtonENGAGED();
+            activation_semi_active = false;
+            Serial.println("-s");
+            delay(200);
+            stopButton();          
+          }
+   
+        }
+              
+        
+      } //
     }
 }
 
@@ -299,7 +355,7 @@ void semiActiveModeMenu(TSPoint p){
            redraw(50, 50+(boxHeightMM+butIncr), assistConst, "CONST.");
         }
       
-      // c. LEFT ARROW - ADMITTANCE x - RIGHT ARROW
+        //c. LEFT ARROW - ADMITTANCE x - RIGHT ARROW
         if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
            drawFrameSmall(50, 50+(boxHeightMM+butIncr)*2, p);
            admittance1--;
@@ -491,7 +547,32 @@ void drawFrameSmall(int x1, int y1, TSPoint p) { // drawing coordinate
 //===============================
 
 void drawPassiveMode(){
+  // a. General
+  tft.fillScreen(BLACK);
   
+  // b. Title page
+  tft.setTextColor(RED);
+  tft.setTextSize(2);
+  tft.setCursor(20, 10);
+  tft.println("PASSIVE MODE");
+  tft.drawFastHLine(50, 30, 145, WHITE);
+
+  // c. Back button
+  singleBlueButton(20, 40, "BACK");
+  
+  // d. First button
+  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr), "CONST. 1");
+
+  // e. Second button
+  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*2, "ENV. 1");
+  //singleBlueButton(20, 50+(boxHeightMM+butIncr)*2, "ADMITT. 1");
+
+  // g. Start button
+  startButton();
+
+  // h. Stop button
+  stopButton();
+     
 }
 
 void drawSemiActiveMode(){

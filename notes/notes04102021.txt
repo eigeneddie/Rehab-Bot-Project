@@ -1,1 +1,49 @@
 re simulate the system for less than 0.1 Hz to have better resolution on mechanism comparison between 4 bar and 6 bar
+
+FIX the damn distance sensor, accumulate it into the program to do determine current absolute distance.
+
+Origin for multibody dynamics analysis:
+-hip joint
+
+Origin for slider system:
+-end of slider rail
+
+Algorithm for passive control:
+1. detect absolute slider position (in slider origin) and angle
+
+--------- can be done multiple times before passive control program--------
+ 
+2. compute multibody dynamics origin (just add offset)
+3. compute femur length
+4. compute theta = f(x) relationship
+5. compute back to slider origin
+----------------------------------
+6. set parameters for passive control
+7. send parameters to low-level controller
+8. conduct passive control training based on sent parameters to low-level controller
+
+
+Notes for active:
+Don't forget to add the filter term to the force sensor since it seems pretty noisy
+
+     Passive control is done mostly within the arduino module (low-level module)
+     High level module (raspberry pi) only computes and sends out control parameters for arduino to execute.
+     Arduino does a predetermined trajectory routine in a certain amount of time.
+     
+     key working of passive mode: 
+       a. 
+     
+     main menu for passive control:
+       set current angle (controlled live from LCD TFT with a preset speed)
+       max knee angle
+       min knee angle
+       speed  (10-50%) --> set Constant speed in stepper accel
+       duration
+       recalculate button
+       
+       For passive mode, there's a lot of communication between device and User interface
+       
+       
+       When the routine begins, the device goes to minimum angle, and starts the routine
+       
+       
