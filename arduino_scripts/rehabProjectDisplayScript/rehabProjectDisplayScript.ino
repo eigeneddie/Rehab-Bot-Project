@@ -123,30 +123,39 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 //Define and initiate mode configuration
 
 //Training mode
-char currentPage = 0; // 4 option (0, 1, 2, 3)
-
+char currentPage = 0; // 4 option (0, 1 (passive), 2 (semi-active), 3 (full-active))
 
 //=========IMPORTANT=============
 //===MODE SPECIFIC ACTIVATION====
 //============CODE===============
 
 //Detail passive mode (in their initial condition)
-int currentKneeAngle // IC will be sent from the arduino-> raspberry pi->LCD
-int maxKneeAngle = 170 // Default max angle
-int minKneeAngle = 30 // Default min angle
-int rehabSpeed = 10 // Default rehab speed
-int duration = 1// set range (1-60) min
+//------------------------------------------------
+// activation code = 10+1 = 11 digits
+int currentKneeAngle = 120;// IC will be sent from the arduino-> raspberry pi->LCD
+int maxKneeAngle = 170; // Default max angle [deg] range: 90-170 (3 digit)
+int minKneeAngle = 30; // Default min angle [deg] range: 10-89 (2 digit)
+int rehabSpeed = 10; // Default rehab speed [%] range: 10-100 (3 digit)
+int duration = 1; // default duration [minutes] range: 1-60 (2 digit)
 
 //Detail semi-assistive mode
+//------------------------------------------------
+// activation code = 2+1 = 3 digits
 int assistConst = 0; // 3 option (can be increased/decreased)
 int admittance1 = 0; // 3 option (can be increased/decreased)
-int options_semi_active = 3;
+
+int options_semi_active = 3; // not exactly an important variable
 
 //Detail full active mode
+//------------------------------------------------
+// activation code = 2+1 = 3 digits
 int activeModeVar = 0; // 2 option (isotonic - isometric)
 int admittance2 = 0; // 3 option (can be increased/decreased)
-int options_Active = 3;
 
+int options_Active = 3; // not exactly an important variable either
+
+// execution code arrays
+int exeCodePassive[11];
 int exeCodeSemiActive[3];
 int exeCodeActive[3];
 
@@ -185,7 +194,6 @@ void loop() {
   fullActiveModeMenu(p); 
 
 }
-
 
 // ====== Custom Funtions ======
 void readXYLocation(TSPoint p){
@@ -256,36 +264,80 @@ void passiveModeMenu(TSPoint p){
             } 
         } 
   
-      // b. LEFT ARROW - THREE ASSISTIVE CONSTANTS - RIGHT ARROW
+      // b. LEFT ARROW - CURRENT KNEE ANGLE - RIGHT ARROW
       
         if ( (p.x > 188) && (p.x < 219) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
            drawFrameSmall(50, 40+(boxHeightMM+butIncr), p);
-           assistConst--;
-           if(assistConst<0){assistConst = 2;}
-           redraw(50, 40+(boxHeightMM+butIncr), assistConst, "CONST.");
+           currentKneeAngle--;
+           if(currentKneeAngle<0){currentKneeAngle = 170;}
+           redraw(50, 40+(boxHeightMM+butIncr), currentKneeAngle, "Current:");
         } 
         
         if (( p.x > 19) && (p.x < 42) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 50+(boxHeightMM+butIncr), p);
-           assistConst++;
-           if(assistConst>=options_semi_active){assistConst = 0;}
-           redraw(50, 50+(boxHeightMM+butIncr), assistConst, "CONST.");
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr), p);
+           currentKneeAngle++;
+           if(currentKneeAngle>=170){currentKneeAngle = 0;}
+           redraw(50, 40+(boxHeightMM+butIncr), currentKneeAngle, "Current:");
         }
       
-        //c. LEFT ARROW - ADMITTANCE x - RIGHT ARROW
+        //c. LEFT ARROW - MAX KNEE ANGLE - RIGHT ARROW
         if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 50+(boxHeightMM+butIncr)*2, p);
-           admittance1--;
-           if(admittance1<0){admittance1 = 2;}
-           redraw(50, 50+(boxHeightMM+butIncr)*2, admittance1, "ENV.");
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
+           maxKneeAngle--;
+           if(maxKneeAngle<30){maxKneeAngle = 170;}
+           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Max Knee:");
         } 
         
         if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 50+(boxHeightMM+butIncr)*2, p);
-           admittance1++;
-           if(admittance1>=options_semi_active){admittance1 = 0;}
-           redraw(50, 50+(boxHeightMM+butIncr)*2, admittance1, "ENV.");
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
+           maxKneeAngle++;
+           if(maxKneeAngle>options_semi_active){admittance1 = 0;}
+           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Max Knee:");
         }
+
+        //d. LEFT ARROW - MIN KNEE ANGLE - RIGHT ARROW
+        if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
+           maxKneeAngle--;
+           if(maxKneeAngle<30){maxKneeAngle = 170;}
+           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Max Knee:");
+        } 
+        
+        if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
+           maxKneeAngle++;
+           if(maxKneeAngle>options_semi_active){admittance1 = 0;}
+           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Max Knee:");
+        }
+        //e. LEFT ARROW - REHAB SPEED - RIGHT ARROW
+        if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
+           maxKneeAngle--;
+           if(maxKneeAngle<30){maxKneeAngle = 170;}
+           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Max Knee:");
+        } 
+        
+        if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
+           maxKneeAngle++;
+           if(maxKneeAngle>options_semi_active){admittance1 = 0;}
+           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Max Knee:");
+        }
+        //f. LEFT ARROW - DURATION - RIGHT ARROW
+        if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
+           maxKneeAngle--;
+           if(maxKneeAngle<30){maxKneeAngle = 170;}
+           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Max Knee:");
+        } 
+        
+        if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
+           maxKneeAngle++;
+           if(maxKneeAngle>options_semi_active){admittance1 = 0;}
+           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Max Knee:");
+        }
+
 
         //d. Start & Stop button sequence
         if ((p.x > 146) && (p.x < 200) && (p.y > 14 ) && (p.y < 40)){
@@ -318,7 +370,7 @@ void passiveModeMenu(TSPoint p){
 
 void semiActiveModeMenu(TSPoint p){
 
-//  int assistConst = 0; // 3 option (can be increased/decreased)
+//int assistConst = 0; // 3 option (can be increased/decreased)
 //int admittance1 = 0; // 3 option (can be increased/decreased)
 //int options_semi_active = 3;
    if(currentPage == 2){
@@ -456,7 +508,7 @@ void fullActiveModeMenu(TSPoint p){
           exeCodeActive[1] = activeModeVar;
           exeCodeActive[2] = admittance2;
           activationCode = generateActivationCodeString(exeCodeActive[0],exeCodeActive[1],exeCodeActive[2]);
-          Serial.println( activationCode);
+          Serial.println(activationCode);
         }
         
         if ((p.x > 25) && (p.x < 88) && (p.y > 17 ) && (p.y < 45)){
@@ -560,12 +612,21 @@ void drawPassiveMode(){
   // c. Back button
   singleBlueButton(20, 40, "BACK");
   
-  // d. First button
-  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr), "CONST. 1");
+  // d. First button: Current Knee Angle
+  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr), "Current: "+currentKneeAngle);
 
-  // e. Second button
-  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*2, "ENV. 1");
-  //singleBlueButton(20, 50+(boxHeightMM+butIncr)*2, "ADMITT. 1");
+  // e. Second button: Max Knee Angle
+  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*2, "Max Knee: "+ maxKneeAngle);
+
+  //f. third button: Min Knee angle
+  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*3, "Min Knee: "+ minKneeAngle);
+
+  //g. fourth button: rehab speed
+  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*4, "Speed: "+ rehabSpeed);
+
+  //f. fifth button: Min Knee angle
+  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*5, "duration: "+ duration);
+
 
   // g. Start button
   startButton();
@@ -622,7 +683,7 @@ void drawActiveMode(){
   singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr), "ISOTONIC");
 
   // e. Second button
-  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. 1");
+  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. "+ admittance2);
   //singleBlueButton(20, 50+(boxHeightMM+butIncr)*2, "ADMITT. 1");
 
   // g. Start button
@@ -638,11 +699,13 @@ void drawActiveMode(){
 //====FUNCTIONALITY BUTTONS======
 //===============================
 
-void overwriteMenu (int xCorner, int yCorner, int textSize, String textMenu){
-  
-}
-
-void singleBlueButton(int x_or, int y_or, String buttonTitle){ // single button options
+void singleBlueButton(int x_or, int y_or, String buttonTitle){ // 
+   /* IMPORTANT BUTTON: SINGULAR button that only has ONE OPTION. 
+    Arg:
+      x_or: x location of button
+      y_or: y location of button
+      buttonTitle: parameter name for button
+  */   
   tft.setTextColor(WHITE);
   tft.setTextSize(2);
   tft.fillRect(x_or, y_or, boxWidth, boxHeight, BLUE);//(x point, y point, width (x), height(y), color); 
@@ -650,8 +713,14 @@ void singleBlueButton(int x_or, int y_or, String buttonTitle){ // single button 
   tft.println(buttonTitle);
 }
 
-void singleBlueLeftRightButton(int x_or, int y_or, String buttonTitle){ // options with left-right arrows
-  
+void singleBlueLeftRightButton(int x_or, int y_or, String buttonTitle){ // 
+   /* IMPORTANT BUTTON: Option button to choose/increase values. This button has 
+      Left and right arrows to increase/decrease parameter values.
+    Arg:
+      x_or: x location of button
+      y_or: y location of button
+      buttonTitle: parameter name for button
+  */ 
   tft.setTextColor(WHITE);
   tft.setTextSize(2);
   tft.fillRect(x_or, y_or, boxWidthMM, boxHeightMM, BLUE);//(x point, y point, width (x), height(y), color); 
@@ -674,7 +743,11 @@ void singleBlueLeftRightButton(int x_or, int y_or, String buttonTitle){ // optio
 
 }
 
-void startButton(){ // Indicate: Button is idle
+void startButton(){ // 
+  /* Indicate: Button is idle
+    Arg:
+      N/A
+  */
   tft.setTextColor(YELLOW);
   tft.setTextSize(2);
   tft.fillRect(25, 270, boxWidthMM/2, boxHeightMM, RED);//(x point, y point, width (x), height(y), color); 
@@ -682,7 +755,11 @@ void startButton(){ // Indicate: Button is idle
   tft.println("START");
 }
 
-void startButtonENGAGED(){ // Indicate: Button is pressed (for a while)
+void startButtonENGAGED(){ // 
+  /* Indicate: Button is pressed 
+    Arg:
+      N/A
+  */
   tft.setTextColor(YELLOW);
   tft.setTextSize(2);
   tft.fillRect(25, 270, boxWidthMM/2, boxHeightMM, GREEN);//(x point, y point, width (x), height(y), color); 
@@ -690,7 +767,11 @@ void startButtonENGAGED(){ // Indicate: Button is pressed (for a while)
   tft.println("START");
 }
 
-void stopButton(){ // Indicate: Button is idle
+void stopButton(){ 
+  /* Indicate: Button is idle
+    Arg:
+      N/A
+  */
   tft.setTextColor(YELLOW);
   tft.setTextSize(2);
   tft.fillRect(240-25-boxWidthMM/2, 270, boxWidthMM/2, boxHeightMM, BLUE);//(x point, y point, width (x), height(y), color); 
@@ -698,7 +779,11 @@ void stopButton(){ // Indicate: Button is idle
   tft.println("STOP");
 }
 
-void stopButtonENGAGED(){ // Indicate: Button is pressed (for a while)
+void stopButtonENGAGED(){ 
+  /* Indicate: Button is pressed (for a while)
+    Arg:
+      N/A
+    */
   tft.setTextColor(YELLOW);
   tft.setTextSize(2);
   tft.fillRect(240-25-boxWidthMM/2, 270, boxWidthMM/2, boxHeightMM, GREEN);//(x point, y point, width (x), height(y), color); 
@@ -706,27 +791,38 @@ void stopButtonENGAGED(){ // Indicate: Button is pressed (for a while)
   tft.println("STOP");
 }
 
-void redraw(int x_or, int y_or, int mode, String title){ // redraws options with left-right arrows
-  if (mode == 0){
-    singleBlueLeftRightButton(x_or, y_or, title + " " + (mode+1));          
-   }
-   else if (mode == 1){
-    singleBlueLeftRightButton(x_or, y_or, title + " " + (mode+1));          
-   }
-   else if (mode == 2){
-    singleBlueLeftRightButton(x_or, y_or, title + " " + (mode+1)); 
- }
- delay(20);// end if active
+void redraw(int x_or, int y_or, int mode, String title){ 
+  /* Redraws options with left-right arrows
+    Arg:
+      x_or: x location
+      y_or: y location
+      mode: parameter number
+      title: parameter name
+    */
+  singleBlueLeftRightButton(x_or, y_or, title + " " + (mode+1));
+  delay(20);// end if active
 }
-String generateActivationCodeString(int x, int y, int z){ //generate 3 code
 
+String generateActivationCodeString(int x, int y, int z){ //generate 3 code
+  /* Generates the activation code of program (for active modes)
+    Arg:
+      x: first digit
+      y: second digit
+      z: third digit
+    */
   x = x*100;
   y = y*10;
   return String(x+y+z);
 }
 
 void authorSign (int x, int y, String codeYear, String authName){
-  // Author
+    /* Author signature
+    Arg:
+      x: x location of string
+      y: y location of string
+      codeYear: when the code was written
+      authName: name of the author
+    */
   tft.setTextColor(RED);
   tft.setTextSize(1);
   tft.setCursor(x, y);
