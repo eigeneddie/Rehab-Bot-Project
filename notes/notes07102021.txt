@@ -1,0 +1,21 @@
+- Make a new angle sensor shaft from 3D printing.
+- Full speed ahead for the passive and assistive control codes, deadline: 12 Okt 2021
+- install limit switches actuated by low level controller
+
+Low level controller function:
+
+During active mode (either full or semi):
+1. accept position command from raspberry pi
+2. actuate the motor
+
+During passive mode:
+1. when user set current angle, motor immediately goes to the corresponding angle 
+	-> Serial communication
+		->keep sending info about the current angle to raspberry 			  pi, and raspberry pi keeps sending command to arduino
+		->when the parameters are set, 
+
+2. when system is set to go, the system does the passive routine based on the parameters sent to the raspberry pi -> arduino.
+3. The execution of passive training routine is done solely by the arduino
+4. as the training goes, we could stop in the middle
+5. if we don't stop the training as it progresses, the passive training will proceed until it finishes with the training.
+6. 

@@ -172,9 +172,10 @@ void setup() {
   drawHomeScreen();
 }
 
+// main loop
 void loop() {
   
-  TSPoint p = ts.getPoint();
+  TSPoint p = ts.getPoint(); // pressure object
   pinMode(XM, OUTPUT);
   pinMode(YP, OUTPUT);
 
@@ -242,7 +243,7 @@ void homePageMenu(TSPoint p){
 }
 
 void passiveModeMenu(TSPoint p){
-
+/*
 //int assistConst = 0; // 3 option (can be increased/decreased)
 //int admittance1 = 0; // 3 option (can be increased/decreased)
 //int options_semi_active = 3;
@@ -300,42 +301,42 @@ void passiveModeMenu(TSPoint p){
            drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
            maxKneeAngle--;
            if(maxKneeAngle<30){maxKneeAngle = 170;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Max Knee:");
+           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Min Knee:");
         } 
         
         if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
            drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
            maxKneeAngle++;
            if(maxKneeAngle>options_semi_active){admittance1 = 0;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Max Knee:");
+           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Min Knee:");
         }
         //e. LEFT ARROW - REHAB SPEED - RIGHT ARROW
         if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
            drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
            maxKneeAngle--;
            if(maxKneeAngle<30){maxKneeAngle = 170;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Max Knee:");
+           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Speed:");
         } 
         
         if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
            drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
            maxKneeAngle++;
            if(maxKneeAngle>options_semi_active){admittance1 = 0;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Max Knee:");
+           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Speed:");
         }
         //f. LEFT ARROW - DURATION - RIGHT ARROW
         if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
            drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
            maxKneeAngle--;
            if(maxKneeAngle<30){maxKneeAngle = 170;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Max Knee:");
+           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Duration:");
         } 
         
         if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
            drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
            maxKneeAngle++;
            if(maxKneeAngle>options_semi_active){admittance1 = 0;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Max Knee:");
+           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Duration:");
         }
 
 
@@ -364,8 +365,8 @@ void passiveModeMenu(TSPoint p){
         }
               
         
-      } //
-    }
+      } 
+    }*/
 }
 
 void semiActiveModeMenu(TSPoint p){
@@ -433,6 +434,7 @@ void semiActiveModeMenu(TSPoint p){
           activationCode = generateActivationCodeString(exeCodeSemiActive[0],exeCodeSemiActive[1],exeCodeSemiActive[2]);
           Serial.println(activationCode);
         }
+        // STOP
         if ((p.x > 25) && (p.x < 88) && (p.y > 17 ) && (p.y < 45)){
 
           if (activation_semi_active == true){
@@ -558,7 +560,7 @@ void drawHomeScreen() {
   singleBlueButton(20, 90+butIncrBig*2, "FULL ACTIVE");
 
   // Author
-  authorSign(5, 305, "2021", "Edgar Sutawika");
+  authorSign(5, 305, "2021", "Edgar B. Sutawika");
 
 }
 
@@ -605,29 +607,28 @@ void drawPassiveMode(){
   // b. Title page
   tft.setTextColor(RED);
   tft.setTextSize(2);
-  tft.setCursor(20, 10);
+  tft.setCursor(55, 10);
   tft.println("PASSIVE MODE");
-  tft.drawFastHLine(50, 30, 145, WHITE);
+  tft.drawFastHLine(50, 27, 145, WHITE);
 
   // c. Back button
-  singleBlueButton(20, 40, "BACK");
+  singleBlueButton(20, 30, "BACK");
   
   // d. First button: Current Knee Angle
-  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr), "Current: "+currentKneeAngle);
-
+  singleBlueLeftRightButton(50, 30+(boxHeightMM+5), "Current:"+ String(currentKneeAngle));
+  //"Current: "+currentKneeAngle
   // e. Second button: Max Knee Angle
-  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*2, "Max Knee: "+ maxKneeAngle);
+  singleBlueLeftRightButton(50, 30+(boxHeightMM+5)*2, "Max: "+ String(maxKneeAngle));
 
   //f. third button: Min Knee angle
-  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*3, "Min Knee: "+ minKneeAngle);
+  singleBlueLeftRightButton(50, 30+(boxHeightMM+5)*3, "Min: "+ String(minKneeAngle));
 
   //g. fourth button: rehab speed
-  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*4, "Speed: "+ rehabSpeed);
+  singleBlueLeftRightButton(50, 30+(boxHeightMM+5)*4, "Speed: "+ String(rehabSpeed));
 
   //f. fifth button: Min Knee angle
-  singleBlueLeftRightButton(50, 40+(boxHeightMM+butIncr)*5, "duration: "+ duration);
-
-
+  singleBlueLeftRightButton(50, 30+(boxHeightMM+5)*5, "duration:"+ String(duration));
+  
   // g. Start button
   startButton();
 
@@ -651,10 +652,10 @@ void drawSemiActiveMode(){
   singleBlueButton(20, 50, "BACK");
   
   // d. First button
-  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr), "CONST. 1");
+  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr), "CONST. "+(assistConst+1));
 
   // e. Second button
-  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. 1");
+  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. "+(admittance1+1));
   //singleBlueButton(20, 50+(boxHeightMM+butIncr)*2, "ADMITT. 1");
 
   // g. Start button
@@ -683,7 +684,7 @@ void drawActiveMode(){
   singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr), "ISOTONIC");
 
   // e. Second button
-  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. "+ admittance2);
+  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. "+ (admittance2+1));
   //singleBlueButton(20, 50+(boxHeightMM+butIncr)*2, "ADMITT. 1");
 
   // g. Start button
