@@ -9,20 +9,24 @@
 #include <AccelStepper.h>
 
 
-//Defining pins
+// 1. Defining pins
 #define Stepper2Pulse 7
 #define Stepper2Direction 8
 #define StepperEnable 9
 
-String stringCode;
+// 2. Command objects
+String stringCommand;
+int moveCode;
 int activationCode;
 
 //defining terms
-
 long Motor2position = 0;
 long temp;
 long motor2position2 ;
 
+
+
+// System limitations
 /* List of Max speed for active mode
  *  
  *  2500 pulse/s = 50 mm/s
@@ -30,7 +34,6 @@ long motor2position2 ;
  *  750 pulse/s = 15 mm/s
  *  500 puse/s = 10 mm/s
  */
-
 int activeMaxSpeed = 750;
 int passiveMaxSpeed = 10000;
 
@@ -54,19 +57,26 @@ void setup() {
 }
 
 void loop() {
-
+  // Note: all discrete commands are marked by \n string at the end
+  
   if (Serial.available()>0){
-    stringCode = Serial.readStringUntil('\n');
+    stringCommand = Serial.readStringUntil('\n');
+
+    if (stringCommand.charAt(0) == 'A'){
+      
+    } // end if nest 2
     
-    switch (stringCode.charAt(0)){
-      case '1':
-        //
+    else if (stringCommand.charAt(0) == 'B'){
+      
+      switch (stringCommand.charAt(1)){
+        case '1':
+          //
         
-        break;
+          break;
         
-      case '2':
-        bool stopActive = false;
-        while(!stopActive){
+        case '2':
+          bool stopActive = false;
+          while(!stopActive){
           
           
           
@@ -74,24 +84,30 @@ void loop() {
             String stopCode = Serial.readStringUntil('\n');
             if (stopCode == "-s"){
               stopActive = true;
+              }
             }
           }
-        }
-
-        
-        break
-      case '3': //it's actually the same as case '2'.
-        // stuff
-        break;
-      default:
-        // do nothing
-        break;
-    }
-    
-  }
+          break
+          
+        case '3': //it's actually the same as case '2'.
+          // stuff
+          break;
+        default:
+          // do nothing
+          break;
+      } // end switch case
       
+    } // end elif nest 2
   
-}
+  } // end if nest 1
+
+}// end void loop
+
+/******************************/
+
+// =====================
+// Sub-program functions
+// =====================
 
 void active_low_level_loop(){
 

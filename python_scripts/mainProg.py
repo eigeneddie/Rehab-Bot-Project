@@ -54,8 +54,8 @@ distance_sensor = DistanceSensor(trigger, echo)
 #   c. knee angle sensor
 
 # 3. Other global variables
-deviceLocation = '/dev/ttyACM0' # port in raspi
-freqSample = 200 # [Hz] system operating frequency 500 Hz rencananya
+deviceLocation = '/dev/ttyACM0' # port in raspi ttyACM0
+freqSample = 500 # [Hz] system operating frequency
 sample_period = 1/freqSample
 ser_command = serial.Serial(deviceLocation, 9600, timeout=1) # initialize serial
 ser_command.flush()

@@ -52,21 +52,24 @@ class admittance_type:
                 -sampling_frequency [float]: sampling frequency of the discrete system.
                 -load_cell [N]: force sensor object used to sense muscle strength (force) from patient.
         '''
-        # Store force sensing object
+
+        ''' Store force sensing object'''
         self.force_sensor = load_cell
         
-        # Variables to be changed later (not during) __init__:
+        '''Variables to be changed later (not during) __init__:'''
         self.pos_init_absolute = 0
         self.pos_now = 0
         self.sensorWindow = 1
         
-        # Variable for storing force and position data
+        '''Variable for storing force and position data'''
         self.force_data = []
         self.position_data = []
-    
-        # Force and position tracking variables. 
-        # First order system
-        # Currently @zero IC 
+
+        '''
+        Force and position tracking variables. 
+        First order system
+        Currently @zero IC 
+        '''
         self.force_in0 = 0
         self.force_in1 = 0
         self.pos_target = 0
@@ -83,6 +86,36 @@ class admittance_type:
         
         self.b_i = sysModel_TFz.num
         self.a_i = -sysModel_TFz.den
+
+        '''
+        Calculating the COEFFICIENTS for low-pass filter on force sensor
+        '''
+
+        freq = 3 # (Hz)
+        w0 = 2*np.pi*freq
+        num = w0
+        den = [1, w0]
+        lowPass = signal.TransferFunction(num, den)
+        dt = 1/sampling_frequency
+        discreteLowPass = lowPass.to_discrete(dt, method = 'gbt', alpha = 0.5)
+        
+        self.b_i_LPF =  discreteLowPass.num
+        self.a_i_LPF = -discreteLowPass.den
+
+       ############# SIGNAL PROCESSING PURPOSE ################# 
+        '''Force Input Signal processing variables'''
+        self.force_data_unfiltered = []
+        self.force_in0_unf = 0
+        self.force_in1_unf = 0
+    
+    
+    def LPF_first_order(self):
+        # First order filter
+        filt_force = self.a_i_LPF[1]*self.force_in1
+        raw_force =  self.b_i_LPF[0]*self.force_in0_unf + self.b_i_LPF[1]*self.force_in1_unf
+        self.force_in0 = filt_force + raw_force
+        self.force_in1_unf = self.force_in0_unf
+    ################################
 
     def haptic_rendering_1(self):
         '''
@@ -107,9 +140,12 @@ class admittance_type:
 
         '''
         
-        # Step 1. Read force of user
+        # Step 1. Read force of user and filter
         self.new_force_reading()
-        
+        self.force_data_unfiltered.append(self.force_in0_unf)
+        self.force_in0 = self.LPF_first_order()
+        self.force_data.append(self.force_in0)
+
         # Step 2. calculate target position
         position_term = self.a_i[1]*self.pos_out1
         force_term = self.b_i[0]*self.force_in0 + self.b_i[1]*self.force_in1
@@ -135,7 +171,6 @@ class admittance_type:
         
         # Step 4   
         self.set_current_position(delta_dist_actual)
-        self.force_data.append(self.force_in0)
         self.position_data.append(self.pos_now)
                 
         # save temporary state 
@@ -152,14 +187,12 @@ class admittance_type:
             Args:  
                 NA
             '''
-        self.force_in0 = self.gravity*self.force_sensor.get_weight_mean(self.sensorWindow)/1000
-        #self.force_data.append(self.force_in0)
+        self.force_in0_unf = self.gravity*self.force_sensor.get_weight_mean(self.sensorWindow)/1000        
         
-        if self.force_in0 == False: # if load cell reading suddenly become invalid
-            self.force_in0 = self.force_in1 # just use the previous value
-        
+        if self.force_in0_unf == False: # if load cell reading suddenly become invalid
+            self.force_in0_unf = self.force_in1_unf # just use the previous value
     
-    def force_median_filter():
+    def force_median_filter(self):
         return 0
     
     def set_initial_position(self, INIT_distance):
@@ -183,7 +216,6 @@ class admittance_type:
                 delta_distance [mm]: data from position sensor (encoder/hall)
         '''
         self.pos_now = self.pos_init_absolute + DELTA_distance
-
 
 
     #------------------------------------------------------
@@ -256,7 +288,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
             time.sleep(1)
             
     window2 = window*30
-    print("Force detected: ",round(forceSensor.get_weight_mean(window)/1000,2), " N")
+    print("Force detected: ",round(forceSensor.get_weight_mean(window2)/1000,2), " N")
     print(" ")
     print("Standing by...")
     print(" ")
@@ -306,3 +338,4 @@ def csv_name_address (activationCode):
     filename = activationCode+todaystr+".csv"
     path = r"/home/pi/rehabilitationProject/rehab-bot-project-raspi-local/python_scripts/commplementary/"
     return path, filename
+
