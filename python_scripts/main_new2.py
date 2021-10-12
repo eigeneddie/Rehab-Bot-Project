@@ -33,7 +33,7 @@ import argparse
 # 1. selection of rehabilitation mode
 def run_rehab_program(activationCode, force_sensor):
 
-    if activationCode[0] == '1':
+    if activationCode[0] == '1' or activationCode[0] == '0':
         passive_mode(activationCode)
     elif activationCode[0] == '2':
         semi_active_mode(activationCode, force_sensor)
@@ -394,7 +394,7 @@ if __name__=="__main__":
                 
                 # => Run rehabilitation procedure based on 
                 #    user input through display.
-                
+                # String Selector is right here!!!
                 if len(activationCode) == 3 and (not activationCode =="-s"):
                     # ====== STEP 3. RUN PROGRAM =======
                     run_rehab_program(activationCode, force_sensor)

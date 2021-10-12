@@ -1,6 +1,15 @@
+notes 20211011 derived from 20211008
+
+Plan for monday 2021/10/11:
+- start installing hardware to the mechanical system
+- work the distance sensor
+- try full active mode again (code the range of operation)
+
+==============================
 - Make a new angle sensor shaft from 3D printing.
 - Full speed ahead for the passive and assistive control codes, deadline: 12 Okt 2021
 - install limit switches actuated by low level controller
+==============================
 
 Low level controller function:
 
@@ -28,8 +37,5 @@ OVERAL SYSTEMS CONSIDERATION
 -don't forget to integrate distance sensor // ready for assemblly
 - motor speed range for passive mode 100 RPM (666 P/s) - 300 RPM (2000 P/s)
 
-Plan for monday 2021/10/11:
-- start installing hardware to the mechanical system
-- work the distance sensor
-- try full active mode again (code the range of operation)
-- 
+What you were working on (1.11 PM)
+incorporate analog reading to PID control loop in stepperLow-level_working_plus_passive.ino

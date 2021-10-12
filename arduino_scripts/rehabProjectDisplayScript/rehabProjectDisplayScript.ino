@@ -132,9 +132,10 @@ char currentPage = 0; // 4 option (0, 1 (passive), 2 (semi-active), 3 (full-acti
 //Detail passive mode (in their initial condition)
 //------------------------------------------------
 // activation code = 10+1 = 11 digits
-int currentKneeAngle = 120;// IC will be sent from the arduino-> raspberry pi->LCD
-int maxKneeAngle = 170; // Default max angle [deg] range: 90-170 (3 digit)
-int minKneeAngle = 30; // Default min angle [deg] range: 10-89 (2 digit)
+// WARNING: KNEE ANGLE --> 123 deg (bengkok) to 0 deg (lurus)
+int currentKneeAngle = 70;// IC will be sent from the arduino-> raspberry pi->LCD
+int maxKneeAngle = 100; // Default max angle [deg] range: 90-170 (3 digit)
+int minKneeAngle = 10; // Default min angle [deg] range: 10-89 (2 digit)
 int rehabSpeed = 10; // Default rehab speed [%] range: 10-100 (3 digit)
 int duration = 1; // default duration [minutes] range: 1-60 (2 digit)
 
@@ -198,6 +199,7 @@ void loop() {
 
 // ====== Custom Funtions ======
 void readXYLocation(TSPoint p){
+  /* inspection function*/
     Serial.print("("); Serial.print(p.x);
     Serial.print(", "); Serial.print(p.y);
     Serial.println(")");
@@ -371,9 +373,9 @@ void passiveModeMenu(TSPoint p){
 
 void semiActiveModeMenu(TSPoint p){
 
-//int assistConst = 0; // 3 option (can be increased/decreased)
-//int admittance1 = 0; // 3 option (can be increased/decreased)
-//int options_semi_active = 3;
+   //int assistConst = 0; // 3 option (can be increased/decreased)
+   //int admittance1 = 0; // 3 option (can be increased/decreased)
+   //int options_semi_active = 3;
    if(currentPage == 2){
     
       if (p.z < MAXPRESSURE && p.z > MINPRESSURE) { 
