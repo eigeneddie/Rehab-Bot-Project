@@ -1,0 +1,14 @@
+notes20211012
+
+1. incorporate time in single command passive mode (millis) for the duration part of the program
+2. how to get switch between target_reference = maxAngle or minAngle when we arrive at target_reference
+3. stop the program when duration of exercise is achieved
+4. stop the program when duration is not achieve but "-s" is received
+5. how to update maxMotor speeed to pid_execute
+6. note: passive mode must work on single or continuous command
+
+strategy: 
+	- update target_reference in void loop
+	- if else statement in void loop to evaluate whether we arrive at target already or not
+	- change target_reference
+

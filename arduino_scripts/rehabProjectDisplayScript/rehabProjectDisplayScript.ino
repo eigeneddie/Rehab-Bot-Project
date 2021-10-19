@@ -30,7 +30,7 @@
   *     min knee angle
   *     speed duration --> set Constant speed in stepper accel
   *     duration
-  *     recalculate button
+  *    
   *     
   *     For passive mode, there's a lot of communication between device and User interface
   *     
@@ -109,14 +109,14 @@
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
-#define boxWidth 200
+#define boxWidth  200
 #define boxHeight 35
 
-#define boxWidthMM 140 //Box width mode menu
+#define boxWidthMM  140 //Box width mode menu
 #define boxHeightMM 35 //Box height mode menu
-#define butIncr 12 // space between button 
-#define butIncrBig 70 // space between button (bigger)
-#define sqrButt 35 // square button size
+#define butIncr     12 // space between button 
+#define butIncrBig  70 // space between button (bigger)
+#define sqrButt     35 // square button size
 #define MINPRESSURE 10
 #define MAXPRESSURE 1000
 
@@ -245,6 +245,15 @@ void homePageMenu(TSPoint p){
 }
 
 void passiveModeMenu(TSPoint p){
+
+  if(currentPage == 1){
+    if (p.z < MAXPRESSURE && p.z > MINPRESSURE) { 
+      p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
+      p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
+      readXYLocation(p);
+    }
+  
+  }
 /*
 //int assistConst = 0; // 3 option (can be increased/decreased)
 //int admittance1 = 0; // 3 option (can be increased/decreased)
@@ -373,86 +382,83 @@ void passiveModeMenu(TSPoint p){
 
 void semiActiveModeMenu(TSPoint p){
 
-   //int assistConst = 0; // 3 option (can be increased/decreased)
-   //int admittance1 = 0; // 3 option (can be increased/decreased)
-   //int options_semi_active = 3;
-   if(currentPage == 2){
+  //int assistConst = 0; // 3 option (can be increased/decreased)
+  //int admittance1 = 0; // 3 option (can be increased/decreased)
+  //int options_semi_active = 3;
+  if(currentPage == 2){
     
-      if (p.z < MAXPRESSURE && p.z > MINPRESSURE) { 
-        p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
-        p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
-        //readXYLocation(p);
+    if (p.z < MAXPRESSURE && p.z > MINPRESSURE) { 
+      p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
+      p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
+      //readXYLocation(p);
     
-        // a. Back button
-        if ((p.x > 19) && (p.x < 215) && (p.y > 247 ) && (p.y < 274) ) {//
-            drawFrame(20, 50, p);
-            currentPage = 0;
-            delay(20);
-            drawHomeScreen();
-            if (activation_semi_active==true){
-              activation_semi_active == false;
-            } 
+      // a. Back button
+      if ((p.x > 19) && (p.x < 215) && (p.y > 247 ) && (p.y < 274) ) {//
+        drawFrame(20, 50, p);
+        currentPage = 0;
+        delay(20);
+        drawHomeScreen();
+        if (activation_semi_active==true){
+          activation_semi_active == false;
         } 
-  
-      // b. LEFT ARROW - THREE ASSISTIVE CONSTANTS - RIGHT ARROW
-      
-        if ( (p.x > 188) && (p.x < 219) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 50+(boxHeightMM+butIncr), p);
-           assistConst--;
-           if(assistConst<0){assistConst = 2;}
-           redraw(50, 50+(boxHeightMM+butIncr), assistConst, "CONST.");
-        } 
-        
-        if (( p.x > 19) && (p.x < 42) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 50+(boxHeightMM+butIncr), p);
-           assistConst++;
-           if(assistConst>=options_semi_active){assistConst = 0;}
-           redraw(50, 50+(boxHeightMM+butIncr), assistConst, "CONST.");
-        }
-      
-        //c. LEFT ARROW - ADMITTANCE x - RIGHT ARROW
-        if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 50+(boxHeightMM+butIncr)*2, p);
-           admittance1--;
-           if(admittance1<0){admittance1 = 2;}
-           redraw(50, 50+(boxHeightMM+butIncr)*2, admittance1, "ENV.");
-        } 
-        
-        if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 50+(boxHeightMM+butIncr)*2, p);
-           admittance1++;
-           if(admittance1>=options_semi_active){admittance1 = 0;}
-           redraw(50, 50+(boxHeightMM+butIncr)*2, admittance1, "ENV.");
-        }
+      } 
 
-        //d. Start & Stop button sequence
-        if ((p.x > 146) && (p.x < 200) && (p.y > 14 ) && (p.y < 40)){
-          startButtonENGAGED();
-          activation_semi_active = true;
+      // b. LEFT ARROW - THREE ASSISTIVE CONSTANTS - RIGHT ARROW    
+      if ( (p.x > 188) && (p.x < 219) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 50+(boxHeightMM+butIncr), p);
+        assistConst--;
+        if(assistConst<0){assistConst = 2;}
+        redraw(50, 50+(boxHeightMM+butIncr), assistConst, "CONST.");
+      } 
+        
+      if (( p.x > 19) && (p.x < 42) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+         drawFrameSmall(50, 50+(boxHeightMM+butIncr), p);
+         assistConst++;
+         if(assistConst>=options_semi_active){assistConst = 0;}
+         redraw(50, 50+(boxHeightMM+butIncr), assistConst, "CONST.");
+      }
+      
+      // c. LEFT ARROW - ADMITTANCE x - RIGHT ARROW
+      if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+         drawFrameSmall(50, 50+(boxHeightMM+butIncr)*2, p);
+         admittance1--;
+         if(admittance1<0){admittance1 = 2;}
+         redraw(50, 50+(boxHeightMM+butIncr)*2, admittance1, "ENV.");
+      } 
+      
+      if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+         drawFrameSmall(50, 50+(boxHeightMM+butIncr)*2, p);
+         admittance1++;
+         if(admittance1>=options_semi_active){admittance1 = 0;}
+         redraw(50, 50+(boxHeightMM+butIncr)*2, admittance1, "ENV.");
+      }
+
+      // d. Start button 
+      if ((p.x > 146) && (p.x < 200) && (p.y > 14 ) && (p.y < 40)){
+        startButtonENGAGED();
+        activation_semi_active = true;
+        delay(200);
+        exeCodeSemiActive[0] = currentPage;
+        exeCodeSemiActive[1] = assistConst;
+        exeCodeSemiActive[2] = admittance1;
+        activationCode = generateActivationCodeString(exeCodeSemiActive[0],exeCodeSemiActive[1],exeCodeSemiActive[2]);
+        Serial.println(activationCode);
+      }
+
+      // e. STOP button
+      if ((p.x > 25) && (p.x < 88) && (p.y > 17 ) && (p.y < 45)){
+        if (activation_semi_active == true){
+          startButton();
+          stopButtonENGAGED();
+          activation_semi_active = false;
+          Serial.println("-s");
           delay(200);
-          exeCodeSemiActive[0] = currentPage;
-          exeCodeSemiActive[1] = assistConst;
-          exeCodeSemiActive[2] = admittance1;
-          activationCode = generateActivationCodeString(exeCodeSemiActive[0],exeCodeSemiActive[1],exeCodeSemiActive[2]);
-          Serial.println(activationCode);
+          stopButton();          
         }
-        // STOP
-        if ((p.x > 25) && (p.x < 88) && (p.y > 17 ) && (p.y < 45)){
-
-          if (activation_semi_active == true){
-            startButton();
-            stopButtonENGAGED();
-            activation_semi_active = false;
-            Serial.println("-s");
-            delay(200);
-            stopButton();          
-          }
-   
-        }
-              
-        
-      } //
-    }
+      }
+            
+    } //
+  }
 }
 
 void fullActiveModeMenu(TSPoint p){
