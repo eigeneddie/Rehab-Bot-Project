@@ -41,9 +41,6 @@ int directionMultiplier = 1; // = 1: positive direction, = -1: negative directio
 bool newData, runallowed = false; // booleans for new data from serial, and runallowed flag
 AccelStepper stepper(1, 7, 8);// pulses Digital 7 (CLK), direction Digital 8 (CCW) 
 
-unsigned long startTime; 
-unsigned long currentTime;
-const unsigned long period = 2000;
 
 void setup()
 {
@@ -54,15 +51,13 @@ void setup()
     //setting up some default values for maximum speed and maximum acceleration
     Serial.println("Default speed: 400 steps/s, default acceleration: 800 steps/s^2.");
     stepper.setMaxSpeed(200); //SPEED = Steps / second
-    stepper.setAcceleration(300); //ACCELERATION = Steps /(second)^2
-     
+    stepper.setAcceleration(200); //ACCELERATION = Steps /(second)^2
+ 
     stepper.disableOutputs(); //disable outputs
-    startTime = millis();
 }
  
 void loop()
-{   
-       
+{
     //Constantly looping through these 2 functions.
     //We only use non-blocking commands, so something else (should also be non-blocking) can be done during the movement of the motor
  
@@ -70,15 +65,7 @@ void loop()
     RunTheMotor(); //function to handle the motor  
     sensorValue = analogRead(sensorPin);
     measuredAngle = map(sensorValue, 0, 1023, 0, 333)-offsetAngle;
-    currentTime = millis();
-    
-    if (currentTime-startTime >= period){
-      Serial.prinln("measured angle: " + measuredAngle + " deg.");
-      startTime = currentTime;
-    
-    }
-    
-    
+    Serial.prinln("measured angle: " + measuredAngle + " deg.");
 }
  
  
