@@ -28,7 +28,7 @@
 int sensorPin = A0;
 int sensorValue = 0;
 int measuredAngle = 0;
-const int offsetAngle = 44;
+const int offsetAngle = 64;//59+4;
 
 long receivedSteps = 0; //Number of steps
 long receivedSpeed = 0; //Steps / second
@@ -71,7 +71,7 @@ void loop()
     currentTime = millis();
     
     if (currentTime-startTime >= period){
-      Serial.prinln("measured angle: " + measuredAngle + " deg.");
+      Serial.println(measuredAngle);
       startTime = currentTime;
     
     }

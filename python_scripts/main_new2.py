@@ -23,8 +23,6 @@ import time
 
 import numpy as np
 import pandas as pd
-#import matplotlib.pyplot as plt
-import argparse
 
 # =================================================================
 # ==================1. MAIN SYSTEM FUNCTIONS=======================
@@ -41,9 +39,6 @@ def run_rehab_program(activationCode, force_sensor):
         full_active_mode(activationCode, force_sensor)     
     
 def passive_mode(activationCode): 
-    return 0
-
-def full_passive_position_control():
     return 0
 
 #----------------------------
@@ -162,7 +157,6 @@ def full_active_mode(activationCode, force_sensor):
     elif activationCode[1] =="1":
         isometric_training(activationCode, force_sensor)
         
-
 def isotonic_training(activationCode, force_sensor): 
     ''' 
     Full active-strength exercise-isotonic training
@@ -234,8 +228,8 @@ def isometric_training(activationCode, force_sensor): # Position Control
     stopCondition = False
     damper_spring = admittance2_constants(activationCode[2]) # assign which damper-spring system
     sysModel = admittance_type(damper_spring, freqSample, force_sensor) # initialize dynamic system model
-#     sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
-#     sysModel.set_force_window(weightMeanWindow)
+    #sysModel.set_initial_position(round(distance_sensor.distance*1000, 0))
+    #sysModel.set_force_window(weightMeanWindow)
     
     print("ACTIVATION CODE: ", activationCode)
     print("training mode: full-active")
@@ -306,7 +300,7 @@ if __name__=="__main__":
         pre_SetRatio = 220693/1000#231052/1000 # based on raw data--> 231052, 222489 ~= 1000 gram
 
         # - distance sensor
-        trigger = 23
+        trigger = 18
         echo = 24
 
         # - potensiometer. 

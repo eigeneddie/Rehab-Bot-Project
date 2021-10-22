@@ -139,6 +139,9 @@ int minKneeAngle = 10; // Default min angle [deg] range: 10-89 (2 digit)
 int rehabSpeed = 10; // Default rehab speed [%] range: 10-100 (3 digit)
 int duration = 1; // default duration [minutes] range: 1-60 (2 digit)
 
+int maxLimit = 123;
+int minLimit = 0;
+
 //Detail semi-assistive mode
 //------------------------------------------------
 // activation code = 2+1 = 3 digits
@@ -245,139 +248,167 @@ void homePageMenu(TSPoint p){
 }
 
 void passiveModeMenu(TSPoint p){
+  /* Passive mode main menu UI.
+   *-> Six menu buttons
+   * a. Back
+   * b. Current position
+   * c. Max
+   * d. Min
+   * e. Speed
+   * f. Duration
+   * g. start
+   * h. stop */
 
+  // Current page 1 = passive mode
   if(currentPage == 1){
+
     if (p.z < MAXPRESSURE && p.z > MINPRESSURE) { 
       p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
       p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
       readXYLocation(p);
+
+      // a. Back button
+      // ------------------------------------------------
+      if ((p.x > 19) && (p.x < 217) && (p.y > 260 ) && (p.y < 292) ) {//
+        drawFrame(20, 30, p);
+        currentPage = 0;
+        delay(20);
+        drawHomeScreen();
+        if (activation_passive==true){
+          activation_passive == false;
+        } 
+      } 
+  
+      // b. LEFT ARROW - CURRENT KNEE ANGLE - RIGHT ARROW
+      // ------------------------------------------------
+      // LEFT
+      if ((p.x > 193) && (p.x < 218) && (p.y > 220 ) && (p.y < 243)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5), p);
+        currentKneeAngle--;
+        if(currentKneeAngle<minLimit){
+          currentKneeAngle = maxLimit;
+        }
+        redraw(50, 30+(boxHeightMM+5), currentKneeAngle-1, "current:");
+        Serial.println("0;" + String(currentKneeAngle));
+      } 
+      
+      // RIGHT
+      if ((p.x > 17) && (p.x < 43) && (p.y > 220 ) && (p.y < 243)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5), p);
+        currentKneeAngle++;
+        if(currentKneeAngle>=maxLimit){
+          currentKneeAngle = minLimit;
+        }
+        redraw(50, 30+(boxHeightMM+5), currentKneeAngle-1, "current:");
+        Serial.println("0;" + String(currentKneeAngle));
+      }
+      
+      //c. LEFT ARROW - MAX KNEE ANGLE - RIGHT ARROW
+      // ------------------------------------------------
+      // LEFT
+      if ((p.x > 193) && (p.x < 218) && (p.y > 176 ) && (p.y < 203)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5)*2, p);
+        maxKneeAngle--;
+        if(maxKneeAngle<30){
+          maxKneeAngle = maxLimit;
+          }
+        redraw(50, 30+(boxHeightMM+5)*2, maxKneeAngle-1, "max:");
+      } 
+      
+      // RIGHT
+      if ((p.x > 17) && (p.x < 43) && (p.y > 176 ) && (p.y < 203)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5)*2, p);
+        maxKneeAngle++;
+        if(maxKneeAngle>maxLimit){
+          maxKneeAngle = 30;
+          }
+        redraw(50, 30+(boxHeightMM+5)*2, maxKneeAngle-1, "max:");
+      }
+
+      //d. LEFT ARROW - MIN KNEE ANGLE - RIGHT ARROW
+      if ((p.x > 193) && (p.x < 218) && (p.y > 144) && (p.y < 162)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5)*3, p);
+        minKneeAngle--;
+        if(minKneeAngle<minLimit){
+          maxKneeAngle = 29;
+        }
+        redraw(50, 30+(boxHeightMM+5)*3, minKneeAngle-1, "min:");
+      } 
+        
+      if ((p.x > 17) && (p.x < 43) && (p.y > 144) && (p.y < 162)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5)*3, p);
+        minKneeAngle++;
+        if(minKneeAngle>29){
+          minKneeAngle = minLimit;
+        }
+        redraw(50, 30+(boxHeightMM+5)*3, minKneeAngle-1, "min:");
+      }
+
+      //e. LEFT ARROW - REHAB SPEED - RIGHT ARROW
+      if ((p.x > 193) && (p.x < 218) && (p.y > 95) && (p.y < 120)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5)*4, p);
+        rehabSpeed = rehabSpeed - 10;
+        if(rehabSpeed<10){
+          rehabSpeed = 100;
+        }
+        redraw(50, 30+(boxHeightMM+5)*4, rehabSpeed-1, "speed:");
+      } 
+        
+      if ((p.x > 17) && (p.x < 43) && (p.y > 95 ) && (p.y < 120)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5)*4, p);
+        rehabSpeed = rehabSpeed + 10;
+        if(rehabSpeed>100){
+          rehabSpeed = 10;
+        }
+        redraw(50, 30+(boxHeightMM+5)*4, rehabSpeed-1, "speed:");
+      }
+
+      //f. LEFT ARROW - DURATION - RIGHT ARROW
+      if ((p.x > 193) && (p.x < 218) && (p.y > 53) && (p.y < 76)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5)*5, p);
+        duration--;
+        if(duration<1){
+          duration = 60;
+        }
+        redraw(50, 30+(boxHeightMM+5)*5, duration-1, "dur:");
+      } 
+        
+      if ((p.x > 17) && (p.x < 43) && (p.y > 53 ) && (p.y < 76)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
+        drawFrameSmall(50, 30+(boxHeightMM+5)*5, p);
+        duration++;
+        if(duration>60){
+          duration = 1;
+        }
+        redraw(50, 30+(boxHeightMM+5)*5,duration-1, "dur:");
+      }
+
+      //g. Start button sequence
+      if ((p.x > 146) && (p.x < 200) && (p.y > 14 ) && (p.y < 40)){
+        startButtonENGAGED();
+        activation_passive = true;
+        delay(200);
+        String activationCodePassive1 = "1;" + String(maxKneeAngle) + ';' + String(minKneeAngle);
+        String activationCodePassive2 =  ';' + String(rehabSpeed) + ';' + String(duration) + "\n";
+        String activationCodePassive = activationCodePassive1 + activationCodePassive2;
+        Serial.println(activationCodePassive);
+      }
+      
+      //h. Stop button sequence
+      if ((p.x > 25) && (p.x < 88) && (p.y > 17 ) && (p.y < 45)){
+        if (activation_passive == true){
+          startButton();
+          stopButtonENGAGED();
+          activation_passive = false;
+          Serial.println("-s");
+          delay(200);
+          stopButton();          
+        }
+  
+      }  
     }
   
   }
-/*
-//int assistConst = 0; // 3 option (can be increased/decreased)
-//int admittance1 = 0; // 3 option (can be increased/decreased)
-//int options_semi_active = 3;
-   if(currentPage == 1){
-    
-      if (p.z < MAXPRESSURE && p.z > MINPRESSURE) { 
-        p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
-        p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
-        //readXYLocation(p);
-    
-        // a. Back button
-        if ((p.x > 19) && (p.x < 215) && (p.y > 247 ) && (p.y < 274) ) {//
-            drawFrame(20, 40, p);
-            currentPage = 0;
-            delay(20);
-            drawHomeScreen();
-            if (activation_passive==true){
-              activation_passive == false;
-            } 
-        } 
-  
-      // b. LEFT ARROW - CURRENT KNEE ANGLE - RIGHT ARROW
-      
-        if ( (p.x > 188) && (p.x < 219) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr), p);
-           currentKneeAngle--;
-           if(currentKneeAngle<0){currentKneeAngle = 170;}
-           redraw(50, 40+(boxHeightMM+butIncr), currentKneeAngle, "Current:");
-        } 
-        
-        if (( p.x > 19) && (p.x < 42) && (p.y > 191 ) && (p.y < 220)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr), p);
-           currentKneeAngle++;
-           if(currentKneeAngle>=170){currentKneeAngle = 0;}
-           redraw(50, 40+(boxHeightMM+butIncr), currentKneeAngle, "Current:");
-        }
-      
-        //c. LEFT ARROW - MAX KNEE ANGLE - RIGHT ARROW
-        if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
-           maxKneeAngle--;
-           if(maxKneeAngle<30){maxKneeAngle = 170;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Max Knee:");
-        } 
-        
-        if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
-           maxKneeAngle++;
-           if(maxKneeAngle>options_semi_active){admittance1 = 0;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Max Knee:");
-        }
 
-        //d. LEFT ARROW - MIN KNEE ANGLE - RIGHT ARROW
-        if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
-           maxKneeAngle--;
-           if(maxKneeAngle<30){maxKneeAngle = 170;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Min Knee:");
-        } 
-        
-        if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
-           maxKneeAngle++;
-           if(maxKneeAngle>options_semi_active){admittance1 = 0;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Min Knee:");
-        }
-        //e. LEFT ARROW - REHAB SPEED - RIGHT ARROW
-        if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
-           maxKneeAngle--;
-           if(maxKneeAngle<30){maxKneeAngle = 170;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Speed:");
-        } 
-        
-        if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
-           maxKneeAngle++;
-           if(maxKneeAngle>options_semi_active){admittance1 = 0;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Speed:");
-        }
-        //f. LEFT ARROW - DURATION - RIGHT ARROW
-        if ( (p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
-           maxKneeAngle--;
-           if(maxKneeAngle<30){maxKneeAngle = 170;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, maxKneeAngle, "Duration:");
-        } 
-        
-        if ( (p.x > 14) && (p.x < 38) && (p.y > 141 ) && (p.y < 167)) { //(p.x > 196) && (p.x < 215) && (p.y > 141 ) && (p.y < 176)
-           drawFrameSmall(50, 40+(boxHeightMM+butIncr)*2, p);
-           maxKneeAngle++;
-           if(maxKneeAngle>options_semi_active){admittance1 = 0;}
-           redraw(50, 40+(boxHeightMM+butIncr)*2, admittance1, "Duration:");
-        }
-
-
-        //d. Start & Stop button sequence
-        if ((p.x > 146) && (p.x < 200) && (p.y > 14 ) && (p.y < 40)){
-          startButtonENGAGED();
-          activation_semi_active = true;
-          delay(200);
-          exeCodeSemiActive[0] = currentPage;
-          exeCodeSemiActive[1] = assistConst;
-          exeCodeSemiActive[2] = admittance1;
-          activationCode = generateActivationCodeString(exeCodeSemiActive[0],exeCodeSemiActive[1],exeCodeSemiActive[2]);
-          Serial.println(activationCode);
-        }
-        if ((p.x > 25) && (p.x < 88) && (p.y > 17 ) && (p.y < 45)){
-
-          if (activation_semi_active == true){
-            startButton();
-            stopButtonENGAGED();
-            activation_semi_active = false;
-            Serial.println("-s");
-            delay(200);
-            stopButton();          
-          }
-   
-        }
-              
-        
-      } 
-    }*/
 }
 
 void semiActiveModeMenu(TSPoint p){
@@ -635,7 +666,7 @@ void drawPassiveMode(){
   singleBlueLeftRightButton(50, 30+(boxHeightMM+5)*4, "Speed: "+ String(rehabSpeed));
 
   //f. fifth button: Min Knee angle
-  singleBlueLeftRightButton(50, 30+(boxHeightMM+5)*5, "duration:"+ String(duration));
+  singleBlueLeftRightButton(50, 30+(boxHeightMM+5)*5, "dur:"+ String(duration));
   
   // g. Start button
   startButton();
@@ -660,10 +691,10 @@ void drawSemiActiveMode(){
   singleBlueButton(20, 50, "BACK");
   
   // d. First button
-  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr), "CONST. "+(assistConst+1));
+  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr), "CONST. "+String(assistConst+1));
 
   // e. Second button
-  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. "+(admittance1+1));
+  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. "+String(admittance1+1));
   //singleBlueButton(20, 50+(boxHeightMM+butIncr)*2, "ADMITT. 1");
 
   // g. Start button
@@ -692,7 +723,7 @@ void drawActiveMode(){
   singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr), "ISOTONIC");
 
   // e. Second button
-  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. "+ (admittance2+1));
+  singleBlueLeftRightButton(50, 50+(boxHeightMM+butIncr)*2, "ENV. "+ String(admittance2+1));
   //singleBlueButton(20, 50+(boxHeightMM+butIncr)*2, "ADMITT. 1");
 
   // g. Start button

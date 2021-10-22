@@ -294,7 +294,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
     print(" ")
     time.sleep(1) # standing by
     
-    '''
+    
     # b. Distance sensor (HC-SR04 ultrasonic)
     print("====1.B. Setting up Distance Sensor!======")
     dist_okay = False
@@ -302,16 +302,16 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
     
     while not dist_okay:
         print("testing distance sensor")
+
+        currentPosition = distance_sensor_func(distanceSensor)
+        check_sensor = isinstance(currentPosition, float)
         
-        print(distanceSensor.distance)
-        check_sensor = isinstance(distanceSensor.distance, float)
-        print(check_sensor)
         if check_sensor == True:
             dist_okay = True
-            print('Sensor reading', distanceSensor.distance)
+            print(dist_okay)
+            print('Sensor reading', currentPosition)
             print('-Distance sensor NOMINAL\n')
-        print(dist_okay)
-    '''
+
     #=====================================================
     print("Sensors: Nominal")
     print(" ")
@@ -339,3 +339,7 @@ def csv_name_address (activationCode):
     path = r"/home/pi/rehabilitationProject/rehab-bot-project-raspi-local/python_scripts/commplementary/"
     return path, filename
 
+def distance_sensor_func(sensor_object):
+    position = round(sensor_object.distance*1000,2)
+    return position
+    
