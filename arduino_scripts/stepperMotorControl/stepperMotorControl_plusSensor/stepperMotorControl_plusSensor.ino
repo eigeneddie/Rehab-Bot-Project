@@ -30,7 +30,7 @@
 int sensorPin = A0;
 int sensorValue = 0;
 int measuredAngle = 0;
-const int offsetAngle = 44;
+const int offsetAngle = 64;//59+4;
 
 long receivedSteps = 0; //Number of steps
 long receivedSpeed = 0; //Steps / second
@@ -65,7 +65,16 @@ void loop()
     RunTheMotor(); //function to handle the motor  
     sensorValue = analogRead(sensorPin);
     measuredAngle = map(sensorValue, 0, 1023, 0, 333)-offsetAngle;
-    Serial.prinln("measured angle: " + measuredAngle + " deg.");
+
+    currentTime = millis();
+    
+    if (currentTime-startTime >= period){
+      Serial.println(measuredAngle);
+      startTime = currentTime;
+    
+    }
+    
+    
 }
  
  

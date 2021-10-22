@@ -107,7 +107,7 @@ void pid_execute();
 const int angleSensorPin = A0; // pot at knee mechanism
 volatile int sensorValue = 0;
 volatile int measuredAngle = 0; // value read from pot
-const int offsetAngle = 44; // systematic offset from absolute potensiometer reading
+const int offsetAngle = 64; // systematic offset from absolute potensiometer reading
 volatile int targetAngle; // target angle value (for single/continuous command)
 volatile int maxMotorSpeed; // deliberate saturation speed for PID
 volatile bool pidGo = false; // Go-NoGo for pid controller
