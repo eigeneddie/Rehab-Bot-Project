@@ -161,7 +161,7 @@ void loop() {
       * 3. send XXX value as reference position 
       * 
       * activation code for '0' passive mode:
-      * '0;XXX\n' ==> continuous command code;target position
+      * "0;XXX\n" ==> continuous command code;target position
       * 
       */
       bool passiveStandby = true;
@@ -313,7 +313,7 @@ void passive_mode_control(String activationCode){
    *  single commands. This is essentially an activation command parser
    *
    * Command content:
-   *  '1;XXX;YYY;ZZZ;AAA\n'==>single command code;max angle;min angle;speed;duration
+   *  "1;XXX;YYY;ZZZ;AAA\n"==>single command code;max angle;min angle;speed;duration
    *  Args:
    *    activationCode [str]: contains parameter to do single command executions
    */

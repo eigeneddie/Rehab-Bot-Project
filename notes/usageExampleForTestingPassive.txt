@@ -1,0 +1,11 @@
+usage
+
+1. continuous command
+input args: command_type;go_to_position
+"0;XXX\n"
+ex. 0;90\n
+
+2. single command
+input args: command_type;max;min;speed;duration
+"1;XXX;YYY;ZZZ;AAA\n"
+ex. 1;100;10;20;1\n
