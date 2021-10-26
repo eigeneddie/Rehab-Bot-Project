@@ -42,14 +42,18 @@ void TimerInit(){
   /* Initialize timer1 
    * Sampling Frequency = 100 Hz 
    * Timer for PID loop in passive training (angle control)  
+   * 
+   * Study reference:
+   * https://www.robotshop.com/community/forum/t/arduino-101-timers-and-interrupts/13072
+   * 
    */ 
   noInterrupts(); //disable all interrupts
   TCCR1A = 0; // Timer or Counter Control Register
   TCCR1B = 0; // The prescaler can be configure in TCCRx
   TCNT1  = 0; // Timer or Counter Register. The actual timer value is stored here.
 
-  OCR1A = 31249; // Output Compare Match Register (16Mhz/256/<sampling_freq>Hz)
-  //31249 (2Hz); //15625 (4Hz) //6249 (10Hz); 
+  OCR1A = 62499; // Output Compare Match Register (16Mhz/256/<sampling_freq>Hz)
+  //62499 (1 Hz);//31249 (2Hz); //15625 (4Hz) //6249 (10Hz); 
   //624 (100Hz); 
 
   TCCR1B |= (1 << WGM12);  // CTC (Clear Time on Compare Match)
@@ -69,19 +73,19 @@ float ku1, ku2, ke0, ke1, ke2;
 float r; // reference command
 float y; // plant output
 
-float Kp = 20; // proportional
-float Ki = 0; // integral
+float Kp = 60; // proportional
+float Ki = 10; // integral
 float Kd = 0; // derivative
 
 float N = 20; // filter coeff
-float Ts = 0.5; // 10 Hz sample frequency
+float Ts = 1; // 1 Hz sample frequency
 
 /*methods & functions*/
 void init_pid(float Kp, float Ki, float Kd, float N, float Ts);
 
 
 // 8. Passive training control utilities
-int maxSpeed_contCommand = 700; // during continuous command mode
+int maxSpeed_contCommand = 900; // during continuous command mode
 
 // angle sensor utilities
 const int angleSensorPin = A0; // pot at knee mechanism
@@ -89,12 +93,13 @@ int sensorValue = 0;
 const int offsetAngle = 64; // systematic offset from absolute potensiometer reading
 
 // PID input and activation parameters
-volatile int targetAngle; // target angle value (for single/continuous command)
-int measuredAngle = 0; // value read from pot
-volatile bool pidGo = false; // Go-NoGo for pid controller
-volatile bool led_state = LOW;
+float targetAngle; // target angle value (for single/continuous command)
+float measuredAngle = 0; // value read from pot
+bool pidGo = false; // Go-NoGo for pid controller
+bool led_state = LOW;
 
 // undersampling utilities
+unsigned long startTime_dur;
 unsigned long startTime; // start time
 unsigned long currentTime; // current time
 const unsigned long period = 2000; //undersampling data period
@@ -134,14 +139,16 @@ void setup() {
 
 void loop() {
 
-  motor_actuator.setSpeed(0); // making sure the motor stops when command stops
-  currentTime = millis(); // grab time
+  motor_actuator.setSpeed(0); 
+  motor_actuator.runSpeed(); // making sure the motor stops when command stops
+  
 
   checkSerial();
   
   sensorValue = analogRead(angleSensorPin);
   measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle); // map it from 0 to 333 degrees)  
-
+  
+  currentTime = millis(); // grab time
   if (currentTime-startTime >= period){
     Serial.print(measuredAngle); Serial.print(" ");
     Serial.print(u0); Serial.print(" ");
@@ -171,7 +178,7 @@ void checkSerial(){
       motor_actuator.setMaxSpeed(maxMotorSpeed);
       
       while(pidGo){
-        currentTime = millis();
+        
         // b. Keep chacking for Reference angle 
         targetAngle = float(getValue(stringCommand,';',1).toInt());
       
@@ -180,16 +187,17 @@ void checkSerial(){
 
           if (stringCommand == "-s"){
             pidGo = false;
+            break;
           }
 
-          if (stringCommand.charAt(0) == '0'){
+          else if (stringCommand.charAt(0) == '0'){
             targetAngle = float(getValue(stringCommand,';',1).toInt());
           }
         }
 
         // c. Measured angle
         sensorValue = analogRead(angleSensorPin);
-        measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle); // map it from 0 to 333 degrees)  
+        measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle); // map it from 0 to 333 degrees  
 
         //Note: update the reference and measured angle @ t = n for 
         // control loop @ t = n.
@@ -198,8 +206,9 @@ void checkSerial(){
         motor_actuator.runSpeed(); 
 
         // d. undersampling serial print
+        currentTime = millis();
         if (currentTime-startTime >= period){
-          Serial.print(measuredAngle); Serial.print(" ");
+          Serial.print(measuredAngle); Serial.print(" "); //print to raspberry pi system
           Serial.print(u0); Serial.print(" ");
           Serial.print(e0); Serial.println(" ");
           startTime = currentTime;
@@ -209,44 +218,73 @@ void checkSerial(){
 
     // OPTION '1'
     if(stringCommand.charAt(0) == '1'){
-      passive_mode_control(stringCommand); // parse single command
+
+      passive_mode_control(stringCommand); // parsing single command
       pidGo = true;
+      bool from_front = true, from_rear = !from_front; // initialize direction to max_ref
+      // front: near motor (min_ref domain)
+      // rear: far from motor (max_ref domain)
       startTime = millis();
-      int count = 0;
+      startTime_dur = millis();
 
       while(pidGo){
-        currentTime = millis();  
-        // a. Update max speed
-        //  *already handled in passive_mode_control (utilizing 'speed' variable)
+
+        // a. *Update max speed
+
+        //  *already handled in 'passive_mode_control' (utilizing 'speed' variable)
 
         // b. Reference angle (utlizing 'max angle' and 'min angle' variable)
-        if (measuredAngle >= max_ref){
-          targetAngle = min_ref;
-
+        
+        // -> assigning target while still on going
+        if (from_front == true && from_rear == false){
+          if(measuredAngle >= max_ref){// -> change direction at the end of the rail
+            from_front = false;
+            from_rear = true;  
+            targetAngle = min_ref;
+          }
+          else{
+            targetAngle = max_ref;
+          }
         }
-        else if (measuredAngle <= min_ref){
-          targetAngle = max_ref;
+        if (from_front == false && from_rear == true){
+          if(measuredAngle <= min_ref){
+            from_front = true;
+            from_rear = false;
+            targetAngle = max_ref;           
+          }
+          else{
+            targetAngle = min_ref;
+          }
         }
 
         // c. Measured angle
         sensorValue = analogRead(angleSensorPin);
-        measuredAngle = map(sensorValue, 0, 1023, 0, 333)-offsetAngle;
+        measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle);
 
-        // d. Stoping criteria (utilizing 'duration' variable)
+        // d. run motor
+        motor_actuator.setSpeed(-assignedSpeed);
+        motor_actuator.runSpeed();
+        
+        // e. Stoping criteria (utilizing 'duration' variable and force stop "-s")
         if (Serial.available() > 0){
           stringCommand = Serial.readStringUntil('\n');
 
           if (stringCommand == "-s"){
             pidGo = false;
+            break;
           }
-          else if(currentTime-startTime>=endTime){
+          else if(currentTime-startTime_dur>=endTime){
             pidGo = false;
+            break;
           }
         }
-        
+
+        // f. undersampling print
+        currentTime = millis();  
         if (currentTime-startTime >= period){
-          Serial.println(measuredAngle);
-          Serial.println(u0);
+          Serial.print(measuredAngle); Serial.print(" "); //print to raspberry pi system
+          Serial.print(u0); Serial.print(" ");
+          Serial.print(e0); Serial.println(" ");
           startTime = currentTime;
         }
       }
@@ -280,16 +318,16 @@ void passive_mode_control(String activationCode){
   maxMotorSpeed = speed_selector(cmd_speed);
   motor_actuator.setMaxSpeed(maxMotorSpeed);
   motor_actuator.setSpeed(0);
+  motor_actuator.runSpeed();
   motor_actuator.setAcceleration(800);
 
   // 4. Training Duration
-  int minutes = cmd_duration.toInt(); // [minutes]
-  endTime = minutes*60*1000; // [milliseconds]
+  int minutes_sys = cmd_duration.toInt(); // [minutes]
+  endTime = minutes_sys/60*1000; // [milliseconds]
 
 }
 
-/*===============================
- *==== PID execution routine ====
+/*==== PID execution routine ====
  *===============================*/
 ISR(TIMER1_COMPA_vect){
   /* Interrupt service routine for
@@ -298,8 +336,11 @@ ISR(TIMER1_COMPA_vect){
   if (pidGo == true){
     assignedSpeed = int(pid_execute(targetAngle, measuredAngle, maxMotorSpeed));
   } 
+  else if (pidGo == false){
+    assignedSpeed = 0;
+  }
   digitalWrite(LED_BUILTIN, led_state);
-  led_state = !led_state;
+  led_state = !led_state; // to check if the timer works
 }
 
 void init_pid(float Kp, float Ki, float Kd, float N, float Ts){
@@ -359,14 +400,14 @@ float pid_execute(float target_angle, float plant_output, float speed_sat){
   return u0;
 }
 /*===============================
- *===============================
  *===============================*/
 
  
 //======USEFULL CODES======//
 
 String getValue(String command_data, char separator, int index){
-  /* This code is thanks to the people of stackOverflow <3!!
+ /* This code is thanks to the people of stackOverflow <3!!
+  * convinient for extracting command usage.
   */
   int found = 0;
   int strIndex[] = {0, -1};
