@@ -9,3 +9,16 @@ ex. 0;90\n
 input args: command_type;max;min;speed;duration
 "1;XXX;YYY;ZZZ;AAA\n"
 ex. 1;100;10;20;1\n
+
+1;90;20;10;4\n
+1;123;20;10;1\n
+
+--> 
+1. semi-active code building and trial (27 october 2021) based on doctor input utilizing absolute distance calculation
+2. integration of program between passive and active mode
+3. main python program to modify
+-> filtering force input
+-> communication between passive '0' and passive '1' from LCD to arduino stepper
+-> passive function: forwarding command
+-> passive function: collecting/append angle data (sampling time about 2Hz) 
+-> continuous/single command interface 

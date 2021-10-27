@@ -1,4 +1,4 @@
- /* Description
+/* Description
   *
   *   This script is for testing passive capabilities only.
   *   
@@ -74,15 +74,15 @@ float r; // reference command
 float y; // plant output
 
 float Kp = 60; // proportional
-float Ki = 10; // integral
+float Ki = 0; // integral
 float Kd = 0; // derivative
 
-float N = 20; // filter coeff
+float N = 0; // filter coeff
 float Ts = 1; // 1 Hz sample frequency
 
 /*methods & functions*/
 void init_pid(float Kp, float Ki, float Kd, float N, float Ts);
-
+ 
 
 // 8. Passive training control utilities
 int maxSpeed_contCommand = 900; // during continuous command mode
@@ -108,7 +108,7 @@ const unsigned long period = 2000; //undersampling data period
 float max_ref; // maximum angle limit
 float min_ref; // minimum angle limit
 long maxMotorSpeed; // moving speed of passive exercise
-int endTime; //duration of passive exercise
+unsigned long endTime; //duration of passive exercise
 
 volatile int assignedSpeed;
 
@@ -150,9 +150,14 @@ void loop() {
   
   currentTime = millis(); // grab time
   if (currentTime-startTime >= period){
+    Serial.print("loop ");
     Serial.print(measuredAngle); Serial.print(" ");
     Serial.print(u0); Serial.print(" ");
+    //Serial.print(u1); Serial.print(" ");
+    //Serial.print(u2); Serial.print(" ");
     Serial.print(e0); Serial.println(" ");
+    //Serial.print(e1); Serial.print(" ");
+    //Serial.print(e2); Serial.println(" ");
     startTime = currentTime;
   }
 
@@ -171,12 +176,13 @@ void checkSerial(){
     if (stringCommand.charAt(0) == '0'){
       pidGo = true;
       startTime = millis();
-      delay(4000);
-
+      Serial.println("Entering 0 mode");
+      delay(2000);
+      
       // a. Update max speed  
       maxMotorSpeed = maxSpeed_contCommand;  
       motor_actuator.setMaxSpeed(maxMotorSpeed);
-      
+      zero_everything();
       while(pidGo){
         
         // b. Keep chacking for Reference angle 
@@ -202,15 +208,20 @@ void checkSerial(){
         //Note: update the reference and measured angle @ t = n for 
         // control loop @ t = n.
         // e. run motor
-        motor_actuator.setSpeed(-assignedSpeed);
+        motor_actuator.setSpeed(assignedSpeed);
         motor_actuator.runSpeed(); 
 
         // d. undersampling serial print
         currentTime = millis();
         if (currentTime-startTime >= period){
+          Serial.print("'0' ");
           Serial.print(measuredAngle); Serial.print(" "); //print to raspberry pi system
           Serial.print(u0); Serial.print(" ");
+          //Serial.print(u1); Serial.print(" ");
+          //Serial.print(u2); Serial.print(" ");
           Serial.print(e0); Serial.println(" ");
+          //Serial.print(e1); Serial.print(" ");
+          //Serial.print(e2); Serial.println(" ");
           startTime = currentTime;
         }
       }
@@ -224,9 +235,11 @@ void checkSerial(){
       bool from_front = true, from_rear = !from_front; // initialize direction to max_ref
       // front: near motor (min_ref domain)
       // rear: far from motor (max_ref domain)
+      Serial.println("Entering 1 mode");
+      delay(2000);
       startTime = millis();
       startTime_dur = millis();
-
+      zero_everything();
       while(pidGo){
 
         // a. *Update max speed
@@ -262,7 +275,7 @@ void checkSerial(){
         measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle);
 
         // d. run motor
-        motor_actuator.setSpeed(-assignedSpeed);
+        motor_actuator.setSpeed(assignedSpeed);
         motor_actuator.runSpeed();
         
         // e. Stoping criteria (utilizing 'duration' variable and force stop "-s")
@@ -273,18 +286,25 @@ void checkSerial(){
             pidGo = false;
             break;
           }
-          else if(currentTime-startTime_dur>=endTime){
-            pidGo = false;
-            break;
-          }
+        }
+        
+        currentTime = millis();
+        if(currentTime-startTime_dur>=endTime){
+          pidGo = false;
+          break;
         }
 
         // f. undersampling print
-        currentTime = millis();  
+          
         if (currentTime-startTime >= period){
+          Serial.print("'1' ");
           Serial.print(measuredAngle); Serial.print(" "); //print to raspberry pi system
           Serial.print(u0); Serial.print(" ");
+          //Serial.print(u1); Serial.print(" ");
+          //Serial.print(u2); Serial.print(" ");
           Serial.print(e0); Serial.println(" ");
+          //Serial.print(e1); Serial.print(" ");
+          //Serial.print(e2); Serial.println(" ");
           startTime = currentTime;
         }
       }
@@ -322,8 +342,8 @@ void passive_mode_control(String activationCode){
   motor_actuator.setAcceleration(800);
 
   // 4. Training Duration
-  int minutes_sys = cmd_duration.toInt(); // [minutes]
-  endTime = minutes_sys/60*1000; // [milliseconds]
+  unsigned long minutes_sys = (unsigned long)cmd_duration.toInt(); // [minutes]
+  endTime = minutes_sys*(unsigned long)60*(unsigned long)1000; // [milliseconds]
 
 }
 
@@ -338,11 +358,17 @@ ISR(TIMER1_COMPA_vect){
   } 
   else if (pidGo == false){
     assignedSpeed = 0;
+    u0 = 0; u1 = 0; u2 = 0;
+    e0= 0; e1 = 0; e2 = 0;
   }
   digitalWrite(LED_BUILTIN, led_state);
   led_state = !led_state; // to check if the timer works
 }
 
+void zero_everything(){
+  e2 = 0, e1 = 0, e0 =0;
+  u2 = 0, u1 = 0, u0 = 0; 
+}
 void init_pid(float Kp, float Ki, float Kd, float N, float Ts){
   /* Initializing PID equation based on user defined parameters
    * 
@@ -358,9 +384,9 @@ void init_pid(float Kp, float Ki, float Kd, float N, float Ts){
   a1 = -(2+N*Ts);
   a2 = 1;
 
-  b0 = Kp*(1+N*Ts) + Ki*Ts*(1+N*Ts)/2 + Kd*N;
-  b1 = -(Kp*(2+N*Ts) - Ki*Ts + 2*Kd*N);
-  b2 = Kp -Ki*Ts/2 + Kd*N;
+  b0 = Kp*(1+N*Ts) + Ki*Ts*(1+N*Ts) + Kd*N;
+  b1 = -(Kp*(2+N*Ts) + Ki*Ts + 2*Kd*N);
+  b2 = Kp + Kd*N;
   
   ku1 = a1/a0; 
   ku2 = a2/a0; 
@@ -370,7 +396,7 @@ void init_pid(float Kp, float Ki, float Kd, float N, float Ts){
   ke2 = b2/a0;
 }
 
-float pid_execute(float target_angle, float plant_output, float speed_sat){
+float pid_execute(float target_angle, float plant_output, long speed_sat){
   /* Executing PID control algorithm
    * 
    *  Args:
@@ -386,15 +412,16 @@ float pid_execute(float target_angle, float plant_output, float speed_sat){
 
   r = target_angle;
   y = plant_output;
- 
-  e0 = r-y; // compute error
-  u0 = ku1*u1 + ku2*u2 - ke0*e0 - ke1*e1 - ke2*e2; //Kp*e0;//-ku1*u1 - ku2*u2 + ke0*e0 + ke1*e1 + ke2*e2; 
 
-  if (u0 >= speed_sat){
+  float speed_sat_fl = float(speed_sat);
+  e0 = r-y; // compute error
+  u0 = ke0*e0 + ke1*e1 + ke2*e2 - ku1*u1 - ku2*u2; //Kp*e0;//-ku1*u1 - ku2*u2 + ke0*e0 + ke1*e1 + ke2*e2; 
+
+  if (u0 >= speed_sat_fl){
     u0 = speed_sat;
   }
 
-  else if (u0 <= -speed_sat){
+  else if (u0 <= -speed_sat_fl){
     u0 = -speed_sat;
   }
   return u0;
@@ -424,7 +451,7 @@ String getValue(String command_data, char separator, int index){
   return found>index ? command_data.substring(strIndex[0], strIndex[1]) : "";
 }
 
-int speed_selector (String speed_percent){
+long speed_selector (String speed_percent){
   /*
   * 800 P/s  = 120 RPM --> 10%
   * 933 P/s  = 140 RPM --> 20%
@@ -438,7 +465,7 @@ int speed_selector (String speed_percent){
   * 2000 P/s = 300 RPM --> 100%
   *
   */
-  int MaxSpeed;
+  long MaxSpeed;
   switch (speed_percent.toInt()){ 
   
     case 10:
