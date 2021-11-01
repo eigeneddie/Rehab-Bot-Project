@@ -12,6 +12,7 @@ ex. 1;100;10;20;1\n
 
 1;90;20;10;4\n
 1;123;20;10;1\n
+1;90;30;30;2
 
 --> 
 1. semi-active code building and trial (27 october 2021) based on doctor input utilizing absolute distance calculation
