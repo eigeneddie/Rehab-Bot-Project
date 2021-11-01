@@ -1,0 +1,4 @@
+plot sudut
+safety kapasitas lutut manusianya
+
+literatur: batasi sudut atau posisi slider?

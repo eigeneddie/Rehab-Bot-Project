@@ -299,7 +299,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
     print("====1.B. Setting up Distance Sensor!======")
     dist_okay = False
     
-    
+    '''
     while not dist_okay:
         print("testing distance sensor")
 
@@ -311,7 +311,7 @@ def initial_diagnostics(forceSensor, distanceSensor, window):
             print(dist_okay)
             print('Sensor reading', currentPosition)
             print('-Distance sensor NOMINAL\n')
-
+    '''
     #=====================================================
     print("Sensors: Nominal")
     print(" ")
