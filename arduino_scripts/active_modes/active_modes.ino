@@ -68,7 +68,7 @@ long step_target_n; // position converted to steps
 // 7. Proportional control input paramters (for angle tracking)
 float targetAngle; // target angle value (for single/continuous command)
 float measuredAngle = 0; // value read from pot
-float maxMotorSpeed;
+long maxMotorSpeed;
 float max_angle; // maximum angle limit
 float min_angle; // minimum angle limit
 
@@ -91,6 +91,10 @@ unsigned long startTime; // start time
 unsigned long currentTime; // current time
 const unsigned long period = 2000; //undersampling data period
 
+// 12. HX711 utilities
+unsigned long t = 0;
+static boolean newDataReady = 0;
+float measuredForce = 0;
 
 void setup() {
   Serial.begin(115200); //Serial.setTimeout(500);
@@ -243,23 +247,34 @@ void checkSerial(){
      * "3;0;an;bn;bn1;max_angle;min_angle\n"
      */ 
     if(stringCommand.charAt(0) == '3' && stringCommand.charAt(1) == '0'){
-      
+      Serial.println("Initiating mode '3'"); Serial.println(" ");
       pidGo = false;
       activeGo = false;
       
       // Mode '3' initialization
       // a. parse command
+      Serial.println("a. parsing command");
+      delay(500);
       active_isotonic(stringCommand); // parsing single command
 
       // b. zero proportional control
+      Serial.println("b. zeroing control param");
+      delay(500);
       zero_everything();
       
       // c. zeroing stepper position (home)
+      Serial.println("b. zeroing control param");
+      delay(500);
       read_angle();
       back_to_flexion();
       motor_actuator.setCurrentPosition(0); // set home
 
       // d. zeroing load cell (tare)
+      LoadCell.tareNoDelay();
+      Serial.println("zeroing load cell");
+      while(!LoadCell.getTareStatus()){}
+      Serial.println("Tare complete"); Serial.println(" ");
+      delay(500);
 
       Serial.println("Entering mode '3': isotonic");
       delay(2000);
@@ -367,9 +382,20 @@ void print_data(){
 // return knee angle to flexion (max_angle) position
 void back_to_flexion(){
   if (measuredAngle != max_angle){
+    maxMotorSpeed = max_proportional_mode;
     pidGo = true;
     while(pidGo){
+      // i. measure angle
+      read_angle();
+
+      // ii. set target angle
       targetAngle = max_angle;
+
+      // iii. run motor
+      motor_actuator.setSpeed(assignedSpeed);
+      motor_actuator.runSpeed();
+      
+      
       stopping_criteria_angleCont();
     }
   }
