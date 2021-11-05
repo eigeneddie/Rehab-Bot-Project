@@ -185,7 +185,7 @@ void checkSerial(){
       zero_everything();
       while(pidGo){
         
-        // b. Keep chacking for Reference angle 
+        // b. Keep checking for Reference angle 
         targetAngle = float(getValue(stringCommand,';',1).toInt());
       
         if (Serial.available() > 0){

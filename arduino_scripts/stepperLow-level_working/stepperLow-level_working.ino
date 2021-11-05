@@ -16,9 +16,9 @@
 
 //defining terms
 
-long Motor2position = 0;
+long position_long = 0;
 long temp;
-long motor2position2 ;
+long target_position;
 
 /* List of Max speed for active mode
  *  
@@ -28,7 +28,7 @@ long motor2position2 ;
  *  500 puse/s = 10 mm/s
  */
 
-int activeMaxSpeed = 750;
+int activeMaxSpeed = 1500;
 int passiveMaxSpeed = 10000;
 
 
@@ -41,29 +41,29 @@ void setup() {
   step2.setMaxSpeed (activeMaxSpeed);  
   step2.setSpeed(500);
 
-  step2.setAcceleration(10000);
+  step2.setAcceleration(7000);
   pinMode(Stepper2Pulse, OUTPUT);
   pinMode(Stepper2Direction, OUTPUT);
   pinMode(StepperEnable, OUTPUT);
   digitalWrite(Stepper2Pulse, LOW);
-  digitalWrite(Stepper2Direction, HIGH);
+  digitalWrite(Stepper2Direction, LOW);
   digitalWrite(StepperEnable, LOW);
 }
 
 void loop() {
   if (Serial.available() > 0) {
-    String Motor2positionString = Serial.readStringUntil('\n');
-    Motor2position = Motor2positionString.toInt();
+    String positionString = Serial.readStringUntil('\n');
+    position_long = positionString.toInt();
     
     //Motor2position = Serial.parseInt();
-    temp = Motor2position;
-    motor2position2 = Motor2position;
+    temp = position_long;
+    target_position = position_long;
   }
   else {
-    motor2position2 = temp;
+    target_position = temp;
   }
   
-   step2.moveTo(-motor2position2);
+   step2.moveTo(target_position);
    step2.run();
 
 }
