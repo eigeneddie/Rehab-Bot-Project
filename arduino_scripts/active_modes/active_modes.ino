@@ -46,7 +46,7 @@ float ku1, ku2, ke0, ke1, ke2;
 float r; // reference command
 float y; // plant output
 
-float Kp = 60; // proportional
+float Kp = 70; // proportional
 float Ki = 0; // integral
 float Kd = 0; // derivative
 
@@ -73,6 +73,7 @@ float max_angle; // maximum angle limit
 float min_angle; // minimum angle limit
 
 // 8. activation parameters for ISR
+int count_pidGo = 0; // to down sample the proportional control
 bool pidGo = false; // Go-NoGo for controller (angle tracking)
 bool activeGo = false; // Go-NoGo for active admittance
 bool led_state = LOW; // LED indicator
@@ -125,7 +126,7 @@ void setup() {
   //=== II. Load cell config ===
   LoadCell.begin();
   float calibrationValue; // calibration value (see example file "Calibration.ino")
-  calibrationValue = 696.0;
+  calibrationValue = 219.0;
   unsigned long stabilizingtime = 2000;
   boolean _tare = true;
   LoadCell.start(stabilizingtime, _tare);
@@ -171,14 +172,14 @@ void loop() {
   motor_actuator.runSpeed(); // making sure the motor stops when command stops
   
   // 2. program functionality (mode '2' and '3')
-  checkSerial();
+  check_serial();
   
   // 3. checking knee angle
   read_angle();
   print_data();
 }
 
-void checkSerial(){
+void check_serial(){
   if (Serial.available() > 0){
     stringCommand = Serial.readStringUntil('\n');
     // if and else if statement to see if string command
@@ -253,68 +254,62 @@ void checkSerial(){
       
       // Mode '3' initialization
       // a. parse command
-      Serial.println("a. parsing command");
+      Serial.println("a. parsing command"); Serial.println(" ");
       delay(500);
       active_isotonic(stringCommand); // parsing single command
 
       // b. zero proportional control
-      Serial.println("b. zeroing control param");
+      Serial.println("b. zeroing control param"); Serial.println(" ");
       delay(500);
       zero_everything();
       
       // c. zeroing stepper position (home)
-      Serial.println("b. zeroing control param");
+      Serial.println("c. zeroing motor position"); Serial.println(" ");
       delay(500);
       read_angle();
       back_to_flexion();
       motor_actuator.setCurrentPosition(0); // set home
 
       // d. zeroing load cell (tare)
-      LoadCell.tareNoDelay();
-      Serial.println("zeroing load cell");
+      Serial.println("d. zeroing force sensor"); Serial.println(" ");
+      LoadCell.tareNoDelay(); // tare (zero load cell)
       while(!LoadCell.getTareStatus()){}
-      Serial.println("Tare complete"); Serial.println(" ");
+      Serial.println("Tare complete."); Serial.println(" ");
       delay(500);
 
       Serial.println("Entering mode '3': isotonic");
-      delay(2000);
+      delay(1000);
+      activeGo = true;
       startTime = millis();      
 
       while(activeGo){
 
-        // a. *Update max speed
-
-        //  *already handled in 'passive_mode_control' (utilizing 'speed' variable)
-
-        // b. Reference angle (utlizing 'max angle' and 'min angle' variable)
+        // a. Read force sensor
+        static boolean newDataReady = 0;
+        const int serialPrintInterval = 2000; //increase value to slow down serial print activity
+        LoadCell.update(); // check for new data/start next conversion
+        measuredForce = LoadCell.getData(); // get smoothed value from the dataset
         
-        // -> assigning target while still on going
+        // b. run motor
+        motor_actuator.moveTo(step_target_n);
+        motor_actuator.run();
 
         // c. Measured angle
-        sensorValue = analogRead(angleSensorPin);
-        measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle);
+        read_angle();
 
-        // d. run motor
-        motor_actuator.setSpeed(assignedSpeed);
-        motor_actuator.runSpeed();
+        // d. Stoping criteria (force stop "-s")
+        stopping_criteria_hap_ren();
         
-        // e. Stoping criteria (force stop "-s")
-        if (Serial.available() > 0){
-          stringCommand = Serial.readStringUntil('\n');
+        // e. undersampling print
+        print_data("mode30");
 
-          if (stringCommand == "-s"){
-            pidGo = false;
-            break;
-          }
-        }
-        
-        // f. undersampling print
-          
+        // f. check if measured angle <= min_angle
+        back_to_flexion();
+
       }
     }
   } 
 }
-
 
 // Active mode '2' 
 void assistive_control (String command_data){
@@ -361,22 +356,12 @@ void active_isometric (String command_data){
   min_angle = minAng.toFloat();
 }
 
-// get current angle sensor reading
-void read_angle(){
-  sensorValue = analogRead(angleSensorPin);
-  measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle);
-}
-
-// print current data to screen
-void print_data(){
-  currentTime = millis(); // grab time
-  if (currentTime-startTime >= period){
-    Serial.print("loop ");
-    Serial.print(measuredAngle); Serial.print(" ");
-    Serial.print(u0); Serial.print(" ");
-    //Serial.print(measuredForce); Serial.println(" ");
-    startTime = currentTime;
-  }  
+float haptic_rendering(float measured_force){
+  y_n = a_coef_1*y_n_1 + b_coef_0*f_n + b_coef_1*f_n_1;
+  long position_target = (long) y_n*50.0; // 1/8 rev/mm * 400 steps/rev 
+  f_n_1 = f_n;
+  y_n_1 = y_n;
+  return position_target;
 }
 
 // return knee angle to flexion (max_angle) position
@@ -384,6 +369,7 @@ void back_to_flexion(){
   if (measuredAngle != max_angle){
     maxMotorSpeed = max_proportional_mode;
     pidGo = true;
+    activeGo = false;
     while(pidGo){
       // i. measure angle
       read_angle();
@@ -395,18 +381,45 @@ void back_to_flexion(){
       motor_actuator.setSpeed(assignedSpeed);
       motor_actuator.runSpeed();
       
-      
       stopping_criteria_angleCont();
     }
   }
 }
 
+// get current angle sensor reading
+void read_angle(){
+  sensorValue = analogRead(angleSensorPin);
+  measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle);
+}
+
+// print current data to screen
+void print_data(String mode){
+  currentTime = millis(); // grab time
+  if (currentTime-startTime >= period){
+    Serial.print(mode); Serial.print(" ");
+    Serial.print(measuredAngle); Serial.print(" ");
+    Serial.print(u0); Serial.print(" ");
+    Serial.print(measuredForce); Serial.println(" ");
+    startTime = currentTime;
+  }  
+}
 // stopping criteria for angle tracking (proportional control)
 void stopping_criteria_angleCont(){
   if (Serial.available() > 0){
     stringCommand = Serial.readStringUntil('\n');
     if (stringCommand == "-s"){
       pidGo = false;
+      activeGo = true;
+    }
+  }
+}
+
+// stopping criteria for haptic rendering
+void stopping_criteria_hap_ren(){
+  if (Serial.available() > 0){
+    stringCommand = Serial.readStringUntil('\n');
+    if (stringCommand == "-s"){
+      activeGo = false;
     }
   }
 }
@@ -417,20 +430,21 @@ ISR(TIMER1_COMPA_vect){
    *  PID execution
    */
   if (pidGo == true){
-    assignedSpeed = int(pid_execute(targetAngle, measuredAngle, maxMotorSpeed));
+    count_pidGo++;
+    if(count_pidGo>49){
+      assignedSpeed = int(pid_execute(targetAngle, measuredAngle, maxMotorSpeed));
+      count_pidGo = 0;
+    }
+    digitalWrite(LED_BUILTIN, LOW);
   } 
   else if (pidGo == false){
     assignedSpeed = 0;
-    u0 = 0; u1 = 0; u2 = 0;
-    e0= 0; e1 = 0; e2 = 0;
   }
   
   if (activeGo == true){
-    y_n = a_coef_1*y_n_1 + b_coef_0*f_n + b_coef_1*f_n_1;
-    step_target_n = (long) y_n*50.0;
+    step_target_n = haptic_rendering(measuredForce);
+    digitalWrite(LED_BUILTIN, HIGH);
   }
-  digitalWrite(LED_BUILTIN, led_state);
-  led_state = !led_state; // to check if the timer works
 }
 
 // Handles internal interrupt execution
@@ -461,6 +475,8 @@ void TimerInit(){
 void zero_everything(){
   e2 = 0, e1 = 0, e0 =0;
   u2 = 0, u1 = 0, u0 = 0; 
+  f_n = 0, f_n_1 = 0;
+  y_n = 0, y_n_1 = 0;
 }
 
 void init_pid(float Kp, float Ki, float Kd, float N, float Ts){

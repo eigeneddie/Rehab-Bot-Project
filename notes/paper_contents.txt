@@ -1,0 +1,35 @@
+Rehab-Bot: Home-Based Lower-Extremity Rehabilitation Device for Gradual Muscle Recovery of Post-Stroke Patients
+
+1 Introduction
+	a. Stroke in the world
+	b. Stroke in Indonesia
+	c. physical rehabilitation meaning and methods 
+		- goal of rehabilitation
+		- four phases of rehabilitation
+		- nature of lower-limb rehabilitation
+
+	d. best way to do rehabilitation 
+		-targeted, focused, high volume. 
+		-engaged, active participation.
+
+	e. challenges from medical worker perspective
+	f. challenges from patient perspective
+	g. innovations: inpatient robots and home-based rehabilitation 
+	h. Focus of the current study
+
+2 rehab-bot design
+	2.1 Mechanical design
+		- CPM for knee replacement surgery rehabilitation overview
+		- Alternate mechanisms and which one to choose?
+		- Key modification to CPM mechanical design for Rehab-Bot
+	2.2 Device Control
+		- Overview key features (passive, assistive, active)
+		- Active mode control strategy
+		- Assistive mode control strategy
+====
+3 active training experiment
+	3.1 methods
+	3.2 results
+	3.3 discussion
+4 Conclusion
+
