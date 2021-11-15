@@ -52,7 +52,7 @@ float Ki = 0; // integral
 float Kd = 0; // derivative
 
 float N = 0; // filter coeff
-float Ts = 0.02; // 50 Hz sample frequency
+float Ts = 0.05; // 50 Hz sample frequency
 
 // 5. Reading angle sensor and offseting
 const int angleSensorPin = A0; // pot at knee mechanism
@@ -93,17 +93,17 @@ const unsigned long period = 2000; //undersampling data period
 
 // 11. HX711 utilities
 unsigned long t = 0;
-static boolean newDataReady = 0;
 float measuredForce = 0;
+boolean newDataReady = false;
 
 // 12. VLX Distance sensor utils
 float sliderDistance; // Origin is at theta = max_angle
 float zeroDistance; // correcting value to sliderDistance
-float sensorReading; // actual mm reading of sensor
+//float sensorReading; // actual mm reading of sensor
 // note: sliderDistance = zeroDistance-sensorReading
 
 void setup() {
-  Serial.begin(115200); //Serial.setTimeout(500);
+  Serial.begin(9600); //Serial.setTimeout(500);
   Wire.begin();
 
   Serial.println("Initiating Rehab-Bot"); Serial.println(" ");
@@ -234,12 +234,13 @@ void check_serial(){
       LoadCell.tare(); // tare (zero load cell)
       boolean tareStatus = false;
       while(!tareStatus){
+        
         Serial.println("taring");
         delay(1000);
-        Serial.println(tareStatus);
         if(LoadCell.getTareStatus() == true){
           tareStatus = true;
         }
+        Serial.println(tareStatus);
       }
       Serial.println("Tare complete."); Serial.println(" ");
       delay(500);
@@ -247,7 +248,7 @@ void check_serial(){
       // e. slider position
       distance_sensor.setMeasurementTimingBudget(200000); //set measurements for high accuracy
       zeroDistance = distance_sensor.readRangeSingleMillimeters(); //read position once
-      sliderDistance = zeroDistance - sensorReading; //current slider position from origin
+      sliderDistance = zeroDistance - distance_sensor.readRangeSingleMillimeters(); //current slider position from origin
       distance_sensor.setMeasurementTimingBudget(50000); //set measurements for high speed (takes up to 50 ms on loop)
       distance_sensor.startContinuous(); //read distance continuously
 
@@ -256,9 +257,9 @@ void check_serial(){
       delay(1000);
       activeGo = true;
       startTime = millis();
-
+      long startTime_local = millis();
       while(activeGo){ // EXECUTE ACTIVE TRAINING MODE
-
+        long start_loop = millis();
         // a. Read force sensor
         read_force();
 
@@ -282,6 +283,12 @@ void check_serial(){
 
         // g. tare force sensor when received 't' command
         tare_force_sensor();
+        currentTime = millis();
+        if (currentTime-startTime_local >= period){
+          Serial.println(currentTime-start_loop);
+          startTime_local = currentTime;
+        }
+        
       }
     }
   } 
@@ -314,7 +321,7 @@ void setup_stepper(){
 void setup_load_cell(){
   LoadCell.begin();
   float calibrationValue; // calibration value (see example file "Calibration.ino")
-  calibrationValue = 104.46;// for beam load cell (219.0 is the value for the s-type load cell at hand)
+  calibrationValue = 98.35;//94.83;//104.46;// for beam load cell (219.0 is the value for the s-type load cell at hand)
   unsigned long stabilizingtime = 2000;
   boolean _tare = true;
   LoadCell.start(stabilizingtime, _tare);
@@ -477,23 +484,27 @@ void move_motor(){
 
 // III.b read force data
 void read_force(){
-  static boolean newDataReady = 0;
-  const int serialPrintInterval = 2000; //increase value to slow down serial print activity
-  LoadCell.update(); // check for new data/start next conversion
-  measuredForce = LoadCell.getData()/1000*9.81; // get smoothed value from the dataset  [Newtons]  
 
-  // never let it go past below zero
-  if (measuredForce<0 || measuredForce <0.3){ //==> measuring threshold is 0.3 Newtons 
-    measuredForce = 0;
+  if (LoadCell.update()) newDataReady = true;
+
+  // get smoothed value from the dataset:
+  if (newDataReady) {
+    if (millis() > t) {
+      measuredForce = LoadCell.getData()/1000*9.81;
+      if (measuredForce < 0 || measuredForce < 0.2){
+        measuredForce = 0.00;
+      }
+      newDataReady = 0;
+      t = millis();
+    }
   }
-  
 }
 
 // III.c re-tare force sensor
 void tare_force_sensor(){
   if (Serial.available() > 0) {
     char inByte = Serial.read();
-    if (inByte == 't') LoadCell.tareNoDelay();
+    if (inByte == 't') LoadCell.tare();
   }
 
   // check if last tare operation is complete:
@@ -535,7 +546,7 @@ ISR(TIMER1_COMPA_vect){
   //====== proportional control =======
   if (pidGo == true){
     count_pidGo++;
-    if(count_pidGo>49){
+    if(count_pidGo>19){
       assignedSpeed = int(pid_execute(targetAngle, measuredAngle, maxMotorSpeed));
       count_pidGo = 0;
     }
@@ -647,7 +658,7 @@ void TimerInit(){
   TCCR1B = 0; // The prescaler can be configure in TCCRx
   TCNT1  = 0; // Timer or Counter Register. The actual timer value is stored here.
 
-  OCR1A = 1249; // Output Compare Match Register (16Mhz/256/<sampling_freq>Hz)
+  OCR1A = 3124;//1249; // Output Compare Match Register (16Mhz/256/<sampling_freq>Hz)
   //62499 (1 Hz);//31249 (2Hz); //15625 (4Hz) //6249 (10Hz); //1249 (50Hz);
   //624 (100Hz); 
 
