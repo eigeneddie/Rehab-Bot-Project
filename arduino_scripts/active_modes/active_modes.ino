@@ -17,14 +17,19 @@
  *      - isometric
  */
 
-// 1. Defining pins
+// 1. Defining pins: we have 3 sensors, 1 actuator
 #define stepperPulse 7
 #define stepperDirection 8
 #define stepperEnable 9
 #define HX711_dout 4 //mcu > HX711 dout pi
 #define HX711_sck 5  //mcu > HX711 sck pin
+//SDA_pin A4
+//SCL_pin A5
+//analog_in A0
 
-// 2. initiate objects 
+#define start_EMG 12 // communicate the EMG arduino to start grabbing data
+
+// 2. initiate objects with their constructors 
 AccelStepper motor_actuator(1, stepperPulse, stepperDirection);
 HX711_ADC LoadCell(HX711_dout, HX711_sck);
 VL53L0X distance_sensor;
@@ -42,7 +47,7 @@ float ku1, ku2, ke0, ke1, ke2;
 float r; // reference command
 float y; // plant output
 
-float Kp = 70; // proportional
+float Kp = 80; // proportional
 float Ki = 0; // integral
 float Kd = 0; // derivative
 
@@ -64,7 +69,7 @@ long step_target_n; // position converted to steps
 // 7. Proportional control input paramters (for angle tracking)
 float targetAngle; // target angle value (for single/continuous command)
 float measuredAngle = 0; // value read from pot
-long maxMotorSpeed;
+long maxMotorSpeed; // saturation speed
 float max_angle; // maximum angle limit
 float min_angle; // minimum angle limit
 volatile long assignedSpeed; // speed to chase knee angle
@@ -104,60 +109,13 @@ void setup() {
   Serial.println("Initiating Rehab-Bot"); Serial.println(" ");
 
   //=== I. Basic system functionality ===
-  //  - Stepper motor setup
-  //  - Limit switch 
-
-  // -> Stepper motor pin setup and init
-  pinMode(stepperPulse, OUTPUT);
-  pinMode(stepperDirection, OUTPUT);
-  pinMode(stepperEnable, OUTPUT);
-
-  digitalWrite(stepperPulse, LOW);
-  digitalWrite(stepperDirection, HIGH);
-  digitalWrite(stepperEnable, HIGH);
-
-  // -> Limit switch Interrupt
-  /*pinMode(interruptPin1, INPUT_PULLUP);
-  pinMode(interruptPin2, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(interruptPin1), front_limit_switch, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(interruptPin2), rear_limit_switch, CHANGE);
-  */
-  Serial.println("INIT_1: Stepper motor setup complete");
+  setup_stepper();
   
   //=== II. Load cell config ===
-  LoadCell.begin();
-  float calibrationValue; // calibration value (see example file "Calibration.ino")
-  calibrationValue = 219.0;
-  unsigned long stabilizingtime = 2000;
-  boolean _tare = true;
-  LoadCell.start(stabilizingtime, _tare);
-  
-  while(LoadCell.getTareTimeoutFlag()){
-    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
-    Serial.println("Retrying...")
-    delay(200);
-  }
-  Serial.println(" ");
-  LoadCell.setCalFactor(calibrationValue);
-  Serial.println("INIT_2: Load cell setup complete");
+  setup_load_cell();
   
   //=== III. Distance Sensor config ===
-  distance_sensor.setTimeout(500);
-  
-  while (!distance_sensor.init()) {
-    Serial.println("Failed to detect and initialize sensor!");
-    Serial.println("Retrying...");
-    delay(500);
-  }
-  Serial.println("distance sensor detected");
-  delay(500);
-
-  //Note: to get distance, use: 
-  // distance_sensor.readRangeSingleMillimeters();
-  // distance_sensor.startContinuous();
-  // distance_sensor.stopContinuous();
-  // distance_sensor.readRangeContinuousMillimeters(); -->
-  //sensor.setMeasurementTimingBudget(100000); --> change accuracy
+  setup_distance_sensor();
 
   //=== IV. Internal Interrupt and Closed-loop Control Init ===
   // ->Enable PID and internal interrupt
@@ -246,8 +204,9 @@ void check_serial(){
     /* OPTION '3'
      * Command usage:
      * "3;0;an;bn;bn1;max_angle;min_angle\n"
+     * test usage: 3;0;0.9997;0.00499925;0.00499925;110;20
      */ 
-    if(stringCommand.charAt(0) == '3' && stringCommand.charAt(1) == '0'){
+    if(stringCommand.charAt(0) == '3' && stringCommand.charAt(2) == '0'){
       Serial.println("Initiating mode '3' Isotonic"); Serial.println(" ");
       pidGo = false;
       activeGo = false;
@@ -272,8 +231,16 @@ void check_serial(){
 
       // d. zeroing load cell (tare)
       Serial.println("d. zeroing force sensor"); Serial.println(" ");
-      LoadCell.tareNoDelay(); // tare (zero load cell)
-      while(!LoadCell.getTareStatus()){}
+      LoadCell.tare(); // tare (zero load cell)
+      boolean tareStatus = false;
+      while(!tareStatus){
+        Serial.println("taring");
+        delay(1000);
+        Serial.println(tareStatus);
+        if(LoadCell.getTareStatus() == true){
+          tareStatus = true;
+        }
+      }
       Serial.println("Tare complete."); Serial.println(" ");
       delay(500);
 
@@ -312,9 +279,74 @@ void check_serial(){
 
         // f. check if measured angle <= min_angle
         back_to_flexion_2();
+
+        // g. tare force sensor when received 't' command
+        tare_force_sensor();
       }
     }
   } 
+}
+
+// FUNCTIONS X: Setup functions
+//------------------------------
+// setup stepper motor pins and other pins
+void setup_stepper(){
+  pinMode(stepperPulse, OUTPUT);
+  pinMode(stepperDirection, OUTPUT);
+  pinMode(stepperEnable, OUTPUT);
+
+  digitalWrite(stepperPulse, LOW);
+  digitalWrite(stepperDirection, HIGH);
+  digitalWrite(stepperEnable, HIGH);
+
+  pinMode(start_EMG, OUTPUT);
+  digitalWrite(start_EMG, LOW);
+  // -> Limit switch Interrupt
+  /*pinMode(interruptPin1, INPUT_PULLUP);
+  pinMode(interruptPin2, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(interruptPin1), front_limit_switch, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(interruptPin2), rear_limit_switch, CHANGE);
+  */
+  Serial.println("INIT_1: Stepper motor setup complete"); Serial.println(" ");
+}
+
+// setup HX711 for load cell/force reading
+void setup_load_cell(){
+  LoadCell.begin();
+  float calibrationValue; // calibration value (see example file "Calibration.ino")
+  calibrationValue = 104.46;// for beam load cell (219.0 is the value for the s-type load cell at hand)
+  unsigned long stabilizingtime = 2000;
+  boolean _tare = true;
+  LoadCell.start(stabilizingtime, _tare);
+  
+  while(LoadCell.getTareTimeoutFlag()){
+    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
+    Serial.println("Retrying...");
+    delay(200);
+  }
+  LoadCell.setCalFactor(calibrationValue);
+  Serial.println("INIT_2: Load cell setup complete"); Serial.println(" ");
+}
+
+// setup VL53L0X distance sensor
+void setup_distance_sensor(){
+  distance_sensor.setTimeout(500);
+  
+  while (!distance_sensor.init()) {
+    Serial.println("Failed to detect and initialize sensor!");
+    Serial.println("Retrying...");
+    delay(500);
+  }
+  Serial.println("distance sensor detected"); Serial.println(" ");
+  delay(500);
+
+  //Note: to get distance, use: 
+  // distance_sensor.readRangeSingleMillimeters();
+  // distance_sensor.startContinuous();
+  // distance_sensor.stopContinuous();
+  // distance_sensor.readRangeContinuousMillimeters(); -->
+  //sensor.setMeasurementTimingBudget(100000); --> change accuracy
+  Serial.println("INIT_3: distance sensor setup complete"); Serial.println(" ");
 }
 
 // FUNCTIONS I: Parsing commands
@@ -404,7 +436,7 @@ void back_to_flexion(){
       motor_actuator.runSpeed();
       
       // iv. print data
-      print_data("back to flexion")
+      print_data("back to flexion");
       stopping_criteria_angleCont();
     }
   }
@@ -413,7 +445,7 @@ void back_to_flexion(){
 // II.b. during training and at min_angle, 
 //       return knee angle to flexion (max_angle) position
 void back_to_flexion_2(){
-  if (measuredAngle == min_angle){
+  if (measuredAngle <= min_angle){
     maxMotorSpeed = max_proportional_mode;
     pidGo = true;
     activeGo = false;
@@ -429,7 +461,7 @@ void back_to_flexion_2(){
       motor_actuator.runSpeed();
       
       // iv. print data
-      print_data("back to flexion")
+      print_data("back to flexion 2");
       stopping_criteria_hap_ren();
     }
   }
@@ -448,7 +480,26 @@ void read_force(){
   static boolean newDataReady = 0;
   const int serialPrintInterval = 2000; //increase value to slow down serial print activity
   LoadCell.update(); // check for new data/start next conversion
-  measuredForce = LoadCell.getData(); // get smoothed value from the dataset    
+  measuredForce = LoadCell.getData()/1000*9.81; // get smoothed value from the dataset  [Newtons]  
+
+  // never let it go past below zero
+  if (measuredForce<0 || measuredForce <0.3){ //==> measuring threshold is 0.3 Newtons 
+    measuredForce = 0;
+  }
+  
+}
+
+// III.c re-tare force sensor
+void tare_force_sensor(){
+  if (Serial.available() > 0) {
+    char inByte = Serial.read();
+    if (inByte == 't') LoadCell.tareNoDelay();
+  }
+
+  // check if last tare operation is complete:
+  if (LoadCell.getTareStatus() == true) {
+    Serial.println("Tare complete");
+  }
 }
 
 // III.d read current knee angle
@@ -456,6 +507,7 @@ void read_angle(){
   sensorValue = analogRead(angleSensorPin);
   measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle);
 }
+
 // III.e read current slider position
 void read_slider_position(){
   sliderDistance = zeroDistance - distance_sensor.readRangeContinuousMillimeters();
@@ -479,7 +531,7 @@ void print_data(String mode){
 //------------------------------------------
 // IV.a ISR for executing haptic rendering & proportional control
 ISR(TIMER1_COMPA_vect){
-  
+  //sei();
   //====== proportional control =======
   if (pidGo == true){
     count_pidGo++;
@@ -616,6 +668,11 @@ void stopping_criteria_angleCont(){
       activeGo = true;
     }
   }
+  
+  if (measuredAngle >= max_angle){
+    pidGo = false;
+    activeGo = true;
+  }
 }
 
 // V.b stopping criteria for haptic rendering
@@ -626,5 +683,10 @@ void stopping_criteria_hap_ren(){
       pidGo = false;
       activeGo = false;
     }
+  }
+  
+  if (measuredAngle >= max_angle){
+    pidGo = false;
+    activeGo = true;
   }
 }
