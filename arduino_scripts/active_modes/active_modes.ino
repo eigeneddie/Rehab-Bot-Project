@@ -81,8 +81,8 @@ bool activeGo = false; // Go-NoGo for active admittance
 bool led_state = LOW; // LED indicator
 
 // 9. Max speeds for functions in ISR
-long max_active_mode = 1000; // [step/s]
-long max_proportional_mode = 1500; // [step/s]
+long max_active_speed = 1000; // [step/s]
+long max_return_speed = 1500; // [step/s]
 
 // 10. Knee angle monitoring 
 // (undersampled and printed to serial monitor)
@@ -148,63 +148,21 @@ void check_serial(){
      * "2;ka;an;bn;bn1;max_angle;min_angle\n"
      */ 
     if (stringCommand.charAt(0) == '2'){
-      pidGo = true;
-      startTime = millis();
-      Serial.println("Entering 2 mode");
-      delay(2000);
-      
-      // a. Update max speed  
-      //maxMotorSpeed = maxSpeed_contCommand;  
-      motor_actuator.setMaxSpeed(maxMotorSpeed);
-      zero_everything();
-      while(pidGo){
-        
-        // b. Keep chacking for Reference angle 
-        targetAngle = float(getValue(stringCommand,';',1).toInt());
-      
-        if (Serial.available() > 0){
-          stringCommand = Serial.readStringUntil('\n');
-
-          if (stringCommand == "-s"){
-            pidGo = false;
-            break;
-          }
-
-          else if (stringCommand.charAt(0) == '0'){
-            targetAngle = float(getValue(stringCommand,';',1).toInt());
-          }
-        }
-
-        // c. Measured angle
-        sensorValue = analogRead(angleSensorPin);
-        measuredAngle = float(map(sensorValue, 0, 1023, 0, 333)-offsetAngle); // map it from 0 to 333 degrees  
-
-        //Note: update the reference and measured angle @ t = n for 
-        // control loop @ t = n.
-        // e. run motor
-        motor_actuator.setSpeed(assignedSpeed);
-        motor_actuator.runSpeed(); 
-
-        // d. undersampling serial print
-        currentTime = millis();
-        if (currentTime-startTime >= period){
-          Serial.print("'0' ");
-          Serial.print(measuredAngle); Serial.print(" "); //print to raspberry pi system
-          Serial.print(u0); Serial.print(" ");
-          //Serial.print(u1); Serial.print(" ");
-          //Serial.print(u2); Serial.print(" ");
-          Serial.print(e0); Serial.println(" ");
-          //Serial.print(e1); Serial.print(" ");
-          //Serial.print(e2); Serial.println(" ");
-          startTime = currentTime;
-        }
-      }
+      // semi-assistive code goes here
     } 
 
     /* OPTION '3'
      * Command usage:
      * "3;0;an;bn;bn1;max_angle;min_angle\n"
-     * test usage: 3;0;0.9997;0.00499925;0.00499925;110;20
+     * 
+     * Test system:
+     * [damper spring] = [0.2 0.03] Ns/mm, N/mm, sampling_freq = 20 Hz
+     * usage: 3;0;0.99252802;0.124533;0.124533;110;20
+     * 
+     * manually calculate other usage with 
+     * other parameters using this google colab:
+     * https://colab.research.google.com/drive/1NBvsuMGZIsFkjUHBi1qZHPs5PDAhqjWN#scrollTo=d69cb7a7
+     * 
      */ 
     if(stringCommand.charAt(0) == '3' && stringCommand.charAt(2) == '0'){
       Serial.println("Initiating mode '3' Isotonic"); Serial.println(" ");
@@ -425,10 +383,11 @@ String getValue(String command_data, char separator, int index){
 
 // FUNCTIONS II: Return to flexion position
 //------------------------------------------
-// II.a. at init, return knee angle to flexion (max_angle) position
+// II.a. at init, return knee angle to flexion (max_angle) position 
+// using proportional control.
 void back_to_flexion(){
   if (measuredAngle != max_angle){
-    maxMotorSpeed = max_proportional_mode;
+    maxMotorSpeed = max_return_speed;
     pidGo = true;
     activeGo = false;
     while(pidGo){
@@ -450,22 +409,16 @@ void back_to_flexion(){
 }
 
 // II.b. during training and at min_angle, 
-//       return knee angle to flexion (max_angle) position
+//       return knee angle to stepper home position (use homing)
 void back_to_flexion_2(){
   if (measuredAngle <= min_angle){
-    maxMotorSpeed = max_proportional_mode;
-    pidGo = true;
+    maxMotorSpeed = max_return_speed;
+    boolean home = false;
     activeGo = false;
-    while(pidGo){
-      // i. measure angle
-      read_angle();
-
-      // ii. set target angle
-      targetAngle = max_angle;
-
-      // iii. run motor
-      motor_actuator.setSpeed(assignedSpeed);
-      motor_actuator.runSpeed();
+    while(!home){
+      // i run motor
+      motor_actuator.setMaxSpeed(max_return_speed);
+      motor_actuator.moveTo(0);
       
       // iv. print data
       print_data("back to flexion 2");
@@ -522,7 +475,6 @@ void read_angle(){
 // III.e read current slider position
 void read_slider_position(){
   sliderDistance = zeroDistance - distance_sensor.readRangeContinuousMillimeters();
-
 }
 
 // III.f print current data to screen/send to high-level controller
@@ -533,6 +485,7 @@ void print_data(String mode){
     Serial.print(mode); Serial.print(" ");
     Serial.print(measuredAngle); Serial.print(" ");
     Serial.print(sliderDistance); Serial.print(" ");
+    Serial.print((float) step_target_n/50); Serial.print(" ");
     Serial.print(measuredForce); Serial.println(" ");
     startTime = currentTime;
   }  
@@ -576,8 +529,9 @@ void zero_everything(){
 
 // IV.c Resistance Algorithm (admittance rendering) 
 float haptic_rendering(float measured_force){
+  f_n = measured_force;
   y_n = a_coef_1*y_n_1 + b_coef_0*f_n + b_coef_1*f_n_1;
-  long position_target = (long) y_n*50.0; // 1/8 rev/mm * 400 steps/rev 
+  long position_target = (long) y_n*50.0; // (1/8 rev/mm) * (400 steps/rev) 
   f_n_1 = f_n;
   y_n_1 = y_n;
   return position_target;
@@ -680,7 +634,7 @@ void stopping_criteria_angleCont(){
     }
   }
   
-  if (measuredAngle >= max_angle){
+  if (measuredAngle >= max_angle){ // when exceeding max_angle, disable proportional control
     pidGo = false;
     activeGo = true;
   }
@@ -696,7 +650,7 @@ void stopping_criteria_hap_ren(){
     }
   }
   
-  if (measuredAngle >= max_angle){
+  if (measuredAngle >= max_angle && stringCommand != "-s"){ // when exceeding max_angle, disable proportional control 
     pidGo = false;
     activeGo = true;
   }
