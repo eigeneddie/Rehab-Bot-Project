@@ -82,7 +82,7 @@ bool led_state = LOW; // LED indicator
 
 // 9. Max speeds for functions in ISR
 long max_active_speed = 1000; // [step/s]
-long max_return_speed = 1500; // [step/s]
+long max_return_speed = 900; // [step/s]
 
 // 10. Knee angle monitoring 
 // (undersampled and printed to serial monitor)
@@ -104,7 +104,7 @@ float zeroDistance; // correcting value to sliderDistance
 
 void setup() {
   Serial.begin(9600); //Serial.setTimeout(500);
-  Wire.begin();
+  
 
   Serial.println("Initiating Rehab-Bot"); Serial.println(" ");
 
@@ -208,7 +208,7 @@ void check_serial(){
       zeroDistance = distance_sensor.readRangeSingleMillimeters(); //read position once
       sliderDistance = zeroDistance - distance_sensor.readRangeSingleMillimeters(); //current slider position from origin
       distance_sensor.setMeasurementTimingBudget(50000); //set measurements for high speed (takes up to 50 ms on loop)
-      distance_sensor.startContinuous(); //read distance continuously
+      //distance_sensor.startContinuous(); //read distance continuously
 
       // f. enter program
       Serial.println("Entering mode '3': isotonic");
@@ -228,7 +228,7 @@ void check_serial(){
         read_angle();
 
         // d. Current measure slider position
-        read_slider_position();
+        //read_slider_position();
         
         // e. Stoping criteria (force stop "-s")
         stopping_criteria_hap_ren();
@@ -261,8 +261,9 @@ void setup_stepper(){
   pinMode(stepperEnable, OUTPUT);
 
   digitalWrite(stepperPulse, LOW);
-  digitalWrite(stepperDirection, HIGH);
+  digitalWrite(stepperDirection, LOW);
   digitalWrite(stepperEnable, HIGH);
+  motor_actuator.setAcceleration(1000);
 
   pinMode(start_EMG, OUTPUT);
   digitalWrite(start_EMG, LOW);
@@ -295,6 +296,7 @@ void setup_load_cell(){
 
 // setup VL53L0X distance sensor
 void setup_distance_sensor(){
+  Wire.begin();
   distance_sensor.setTimeout(500);
   
   while (!distance_sensor.init()) {
@@ -333,6 +335,7 @@ void assistive_control (String command_data){
 
 // I.b. Active mode '3' & '0': Isotonic training
 void parse_active_isotonic (String command_data){
+  //3;0;0.99252802;0.124533;0.124533;110;20
   String acoef1 = getValue(command_data, ';', 2);
   String bcoef0 = getValue(command_data, ';', 3);
   String bcoef1 = getValue(command_data, ';', 4);
@@ -388,6 +391,7 @@ String getValue(String command_data, char separator, int index){
 void back_to_flexion(){
   if (measuredAngle != max_angle){
     maxMotorSpeed = max_return_speed;
+    motor_actuator.setMaxSpeed(maxMotorSpeed);
     pidGo = true;
     activeGo = false;
     while(pidGo){
@@ -413,16 +417,20 @@ void back_to_flexion(){
 void back_to_flexion_2(){
   if (measuredAngle <= min_angle){
     maxMotorSpeed = max_return_speed;
-    boolean home = false;
+    boolean home_pos = false;
     activeGo = false;
-    while(!home){
+    while(!home_pos){
       // i run motor
-      motor_actuator.setMaxSpeed(max_return_speed);
+      motor_actuator.setMaxSpeed(maxMotorSpeed);
       motor_actuator.moveTo(0);
+      motor_actuator.run();
       
-      // iv. print data
+      if (motor_actuator.currentPosition() == 0){
+        home_pos = true;
+        activeGo = true;
+      }
+      // iii. print data
       print_data("back to flexion 2");
-      stopping_criteria_hap_ren();
     }
   }
 }
@@ -431,9 +439,10 @@ void back_to_flexion_2(){
 //------------------------------------------
 // III.a move the motor to target position
 void move_motor(){
-  motor_actuator.moveTo(step_target_n);
-  motor_actuator.run();
-}
+  motor_actuator.setMaxSpeed(max_active_speed);
+  motor_actuator.moveTo(-step_target_n); // It's minus because our positive
+  motor_actuator.run();                  // and the machine's positive is different.
+}                                        // This is not some sort of a quick fix, it's just logic.
 
 // III.b read force data
 void read_force(){
@@ -474,7 +483,8 @@ void read_angle(){
 
 // III.e read current slider position
 void read_slider_position(){
-  sliderDistance = zeroDistance - distance_sensor.readRangeContinuousMillimeters();
+  //sliderDistance = zeroDistance - distance_sensor.readRangeContinuousMillimeters();
+  sliderDistance = zeroDistance - distance_sensor.readRangeSingleMillimeters();
 }
 
 // III.f print current data to screen/send to high-level controller
@@ -511,7 +521,7 @@ ISR(TIMER1_COMPA_vect){
   //==================================
 
   //====== haptic rendering =======
-  if (activeGo == true){
+  if (activeGo == true && pidGo == false){
     step_target_n = haptic_rendering(measuredForce);
     digitalWrite(LED_BUILTIN, HIGH);
   }
@@ -650,7 +660,7 @@ void stopping_criteria_hap_ren(){
     }
   }
   
-  if (measuredAngle >= max_angle && stringCommand != "-s"){ // when exceeding max_angle, disable proportional control 
+  if (measuredAngle >= max_angle){ // when exceeding max_angle, disable proportional control 
     pidGo = false;
     activeGo = true;
   }

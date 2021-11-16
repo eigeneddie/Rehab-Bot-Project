@@ -1,0 +1,11 @@
+problem
+1. active mode: motor not moving to target position
+2. distance sensor timeout
+3;0;0.99252802;0.124533;0.124533;110;20
+
+0.99850112 0.02498126
+damp, spring = 1, 0.03
+3;0;0.99850112;0.02498126;0.02498126;110;20
+
+damp, spring = 0.6, 0.03
+3;0;0.99750312;0.04161465;0.04161465;110;20
