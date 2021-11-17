@@ -419,6 +419,7 @@ void back_to_flexion_2(){
     maxMotorSpeed = max_return_speed;
     boolean home_pos = false;
     activeGo = false;
+    zero_everything();
     while(!home_pos){
       // i run motor
       motor_actuator.setMaxSpeed(maxMotorSpeed);
@@ -534,6 +535,7 @@ void zero_everything(){
   u2 = 0, u1 = 0, u0 = 0; 
   f_n = 0, f_n_1 = 0;
   y_n = 0, y_n_1 = 0;
+  measuredForce = 0;
   step_target_n = 0;
 }
 
