@@ -18,6 +18,7 @@
  */
 
 // 1. Defining pins: we have 3 sensors, 1 actuator
+// pins
 #define stepperPulse 7
 #define stepperDirection 8
 #define stepperEnable 9
@@ -26,6 +27,11 @@
 //SDA_pin A4
 //SCL_pin A5
 //analog_in A0
+
+// limit switches
+#define interruptPin1 = 2 // front limit switch
+#define interruptPin2 = 3 // rear limit switch
+
 
 #define start_EMG 12 // communicate the EMG arduino to start grabbing data
 
@@ -89,7 +95,7 @@ long max_return_speed = 900; // [step/s]
 unsigned long startTime_dur;
 unsigned long startTime; // start time
 unsigned long currentTime; // current time
-const unsigned long period = 2000; //undersampling data period
+const unsigned long period = 500; //undersampling data period
 
 // 11. HX711 utilities
 unsigned long t = 0;
@@ -212,10 +218,15 @@ void check_serial(){
 
       // f. enter program
       Serial.println("Entering mode '3': isotonic");
-      delay(1000);
+      delay(500);
       activeGo = true;
+
       startTime = millis();
       long startTime_local = millis();
+
+      digitalWrite(start_EMG, HIGH); // start getting EMG data!
+      print_data_once("mode30");
+
       while(activeGo){ // EXECUTE ACTIVE TRAINING MODE
         long start_loop = millis();
         // a. Read force sensor
@@ -228,13 +239,13 @@ void check_serial(){
         read_angle();
 
         // d. Current measure slider position
-        //read_slider_position();
+        read_slider_position();
         
         // e. Stoping criteria (force stop "-s")
         stopping_criteria_hap_ren();
         
         // e. undersampling print
-        print_data("mode3Isotonic");
+        print_data("mode30");
 
         // f. check if measured angle <= min_angle
         back_to_flexion_2();
@@ -242,12 +253,14 @@ void check_serial(){
         // g. tare force sensor when received 't' command
         tare_force_sensor();
         currentTime = millis();
+
+        // h. print loop duration time
         if (currentTime-startTime_local >= period){
           Serial.println(currentTime-start_loop);
           startTime_local = currentTime;
         }
-        
       }
+      digitalWrite(start_EMG, LOW);
     }
   } 
 }
@@ -267,12 +280,13 @@ void setup_stepper(){
 
   pinMode(start_EMG, OUTPUT);
   digitalWrite(start_EMG, LOW);
-  // -> Limit switch Interrupt
+  //=== Limit switch Interrupt ===
   /*pinMode(interruptPin1, INPUT_PULLUP);
   pinMode(interruptPin2, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(interruptPin1), front_limit_switch, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(interruptPin2), rear_limit_switch, CHANGE);
-  */
+  attachInterrupt(digitalPinToInterrupt(interruptPin1), limit_switch, RISING);
+  attachInterrupt(digitalPinToInterrupt(interruptPin2), limit_switch, RISING);*/
+  //=================================
+
   Serial.println("INIT_1: Stepper motor setup complete"); Serial.println(" ");
 }
 
@@ -297,7 +311,7 @@ void setup_load_cell(){
 // setup VL53L0X distance sensor
 void setup_distance_sensor(){
   Wire.begin();
-  distance_sensor.setTimeout(500);
+  distance_sensor.setTimeout(50);
   
   while (!distance_sensor.init()) {
     Serial.println("Failed to detect and initialize sensor!");
@@ -502,11 +516,18 @@ void print_data(String mode){
   }  
 }
 
+void print_data_once(String mode){
+  Serial.print(mode); Serial.print(" ");
+  Serial.print(measuredAngle); Serial.print(" ");
+  Serial.print(sliderDistance); Serial.print(" ");
+  Serial.print((float) step_target_n/50); Serial.print(" ");
+  Serial.print(measuredForce); Serial.println(" ");
+}
+
 // FUNCTIONS IV: Main control functions (inside Internal Interrupt, TIMER1)
 //------------------------------------------
 // IV.a ISR for executing haptic rendering & proportional control
 ISR(TIMER1_COMPA_vect){
-  //sei();
   //====== proportional control =======
   if (pidGo == true){
     count_pidGo++;
@@ -535,7 +556,7 @@ void zero_everything(){
   u2 = 0, u1 = 0, u0 = 0; 
   f_n = 0, f_n_1 = 0;
   y_n = 0, y_n_1 = 0;
-  measuredForce = 0;
+  measuredForce = 0.0;
   step_target_n = 0;
 }
 
@@ -666,4 +687,12 @@ void stopping_criteria_hap_ren(){
     pidGo = false;
     activeGo = true;
   }
+}
+
+// External interrupt - limit switch
+void limit_switch(){
+  //Hardware safety @software level: forcefully stop the driver when 
+  //the slider happens to reach the absolute endz of the rail
+  digitalWrite(stepperEnable, LOW);
+
 }
