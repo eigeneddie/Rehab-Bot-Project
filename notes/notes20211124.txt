@@ -1,0 +1,24 @@
+notes20211124
+
+target:
+1. fix passive mode 1
+2. validation data, compare with simulation model:
+	-force data
+	-position target (command)
+	-position actual
+	-position target (simulated)
+
+3. write paper
+	testing data:
+	-force data
+	-position target (command)
+	-position actual
+	-position target (simulated)
+
+4. testing passive features
+	-testing with 2 speed modes
+	-testing reference tracking 
+
+5. eval
+	- human fit (knee angle alignment)
+	- human comfort (crotch collision)

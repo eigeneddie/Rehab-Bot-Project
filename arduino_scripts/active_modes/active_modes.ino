@@ -59,7 +59,7 @@ float Ki = 0; // integral
 float Kd = 0; // derivative
 
 float N = 0; // filter coeff
-float Ts = 0.05; // 50 Hz sample frequency
+float Ts = 0.05; // 20 Hz sample frequency
 
 // 5. Reading angle sensor and offseting
 const int angleSensorPin = A0; // pot at knee mechanism
