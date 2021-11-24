@@ -33,7 +33,8 @@
 #define interruptPin2 = 3 // rear limit switch
 
 
-#define start_EMG 12 // communicate the EMG arduino to start grabbing data
+#define start_EMG 12 // communicate the EMG arduino 2 to start grabbing data
+#define start_position 11 // communicate with position sensor arduino 3 grabing data
 
 // 2. initiate objects with their constructors 
 AccelStepper motor_actuator(1, stepperPulse, stepperDirection);
@@ -87,7 +88,7 @@ bool activeGo = false; // Go-NoGo for active admittance
 bool led_state = LOW; // LED indicator
 
 // 9. Max speeds for functions in ISR
-long max_active_speed = 1000; // [step/s]
+long max_active_speed = 1500; // [step/s]
 long max_return_speed = 900; // [step/s]
 
 // 10. Knee angle monitoring 
@@ -96,6 +97,7 @@ unsigned long startTime_dur;
 unsigned long startTime; // start time
 unsigned long currentTime; // current time
 const unsigned long period = 500; //undersampling data period
+unsigned long start_program = 0;
 
 // 11. HX711 utilities
 unsigned long t = 0;
@@ -121,7 +123,7 @@ void setup() {
   setup_load_cell();
   
   //=== III. Distance Sensor config ===
-  setup_distance_sensor();
+  //setup_distance_sensor();
 
   //=== IV. Internal Interrupt and Closed-loop Control Init ===
   // ->Enable PID and internal interrupt
@@ -210,25 +212,30 @@ void check_serial(){
       delay(500);
 
       // e. slider position
-      distance_sensor.setMeasurementTimingBudget(200000); //set measurements for high accuracy
+      /*distance_sensor.setMeasurementTimingBudget(200000); //set measurements for high accuracy
       zeroDistance = distance_sensor.readRangeSingleMillimeters(); //read position once
       sliderDistance = zeroDistance - distance_sensor.readRangeSingleMillimeters(); //current slider position from origin
       distance_sensor.setMeasurementTimingBudget(50000); //set measurements for high speed (takes up to 50 ms on loop)
       //distance_sensor.startContinuous(); //read distance continuously
-
+      */
+      
       // f. enter program
       Serial.println("Entering mode '3': isotonic");
       delay(500);
       activeGo = true;
 
-      startTime = millis();
-      long startTime_local = millis();
-
       digitalWrite(start_EMG, HIGH); // start getting EMG data!
+      digitalWrite(start_position, HIGH); // start getting slider position data!
+    
+      
+      //long startTime_local = millis(); // local variable to track loop duration
+      start_program = millis();
+      currentTime = millis();
       print_data_once("mode30");
-
+      startTime = millis();
+      
       while(activeGo){ // EXECUTE ACTIVE TRAINING MODE
-        long start_loop = millis();
+        //long start_loop = millis(); // local variable to track loop duration
         // a. Read force sensor
         read_force();
 
@@ -239,7 +246,7 @@ void check_serial(){
         read_angle();
 
         // d. Current measure slider position
-        read_slider_position();
+        //read_slider_position();
         
         // e. Stoping criteria (force stop "-s")
         stopping_criteria_hap_ren();
@@ -252,15 +259,18 @@ void check_serial(){
 
         // g. tare force sensor when received 't' command
         tare_force_sensor();
-        currentTime = millis();
+        
 
         // h. print loop duration time
+        /*
+        currentTime = millis();
         if (currentTime-startTime_local >= period){
           Serial.println(currentTime-start_loop);
           startTime_local = currentTime;
-        }
+        }*/
       }
       digitalWrite(start_EMG, LOW);
+      digitalWrite(start_position, LOW);
     }
   } 
 }
@@ -276,10 +286,13 @@ void setup_stepper(){
   digitalWrite(stepperPulse, LOW);
   digitalWrite(stepperDirection, LOW);
   digitalWrite(stepperEnable, HIGH);
-  motor_actuator.setAcceleration(1000);
+  motor_actuator.setAcceleration(1500);
 
+  // Data acquisition
   pinMode(start_EMG, OUTPUT);
   digitalWrite(start_EMG, LOW);
+  pinMode(start_position, OUTPUT);
+  digitalWrite(start_position, LOW);
   //=== Limit switch Interrupt ===
   /*pinMode(interruptPin1, INPUT_PULLUP);
   pinMode(interruptPin2, INPUT_PULLUP);
@@ -310,7 +323,7 @@ void setup_load_cell(){
 
 // setup VL53L0X distance sensor
 void setup_distance_sensor(){
-  Wire.begin();
+  /*Wire.begin();
   distance_sensor.setTimeout(50);
   
   while (!distance_sensor.init()) {
@@ -319,15 +332,15 @@ void setup_distance_sensor(){
     delay(500);
   }
   Serial.println("distance sensor detected"); Serial.println(" ");
-  delay(500);
-
+  delay(500);*/
+  
   //Note: to get distance, use: 
   // distance_sensor.readRangeSingleMillimeters();
   // distance_sensor.startContinuous();
   // distance_sensor.stopContinuous();
   // distance_sensor.readRangeContinuousMillimeters(); -->
   //sensor.setMeasurementTimingBudget(100000); --> change accuracy
-  Serial.println("INIT_3: distance sensor setup complete"); Serial.println(" ");
+  //Serial.println("INIT_3: distance sensor setup complete"); Serial.println(" ");
 }
 
 // FUNCTIONS I: Parsing commands
@@ -509,9 +522,10 @@ void print_data(String mode){
   if (currentTime-startTime >= period){
     Serial.print(mode); Serial.print(" ");
     Serial.print(measuredAngle); Serial.print(" ");
-    Serial.print(sliderDistance); Serial.print(" ");
+    //Serial.print(sliderDistance); Serial.print(" ");
     Serial.print((float) step_target_n/50); Serial.print(" ");
-    Serial.print(measuredForce); Serial.println(" ");
+    Serial.print(measuredForce); Serial.print(" ");
+    Serial.print(currentTime-start_program); Serial.println(" ");
     startTime = currentTime;
   }  
 }
@@ -519,7 +533,7 @@ void print_data(String mode){
 void print_data_once(String mode){
   Serial.print(mode); Serial.print(" ");
   Serial.print(measuredAngle); Serial.print(" ");
-  Serial.print(sliderDistance); Serial.print(" ");
+  //Serial.print(sliderDistance); Serial.print(" ");
   Serial.print((float) step_target_n/50); Serial.print(" ");
   Serial.print(measuredForce); Serial.println(" ");
 }
