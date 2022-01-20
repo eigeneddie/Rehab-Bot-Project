@@ -1,0 +1,31 @@
+22518
+
+thigh: 14175
+foot: 1930
+calf: 6412
+
+references:
+
+
+mass distribution of lower limb
+
+https://exrx.net/Kinesiology/Segments
+
+leg force
+
+https://msis.jsc.nasa.gov/sections/section04.htm
+REHAB-BOT: CONTROL SYSTEM DESIGN OF A HOME-BASED LOWER-EXTREMITY REHABILITATION DEVICE WITH MUSCLE RECOVERY FEATURES
+
+motor specificatin 
+
+https://www.omc-stepperonline.com/download/23HP45-4204S_Torque_Curve.pdf
+
+https://www.omc-stepperonline.com/nema-23-stepper-motor/p-series-nema-23-bipolar-3nm-425oz-in-4-2a-57x57x114mm-4-wires-stepper-motor-cnc.html
+
+https://www.tokopedia.com/snapshot_product?order_id=892295869&dtl_id=1495511244
+
+https://www.aliexpress.com/item/32857377575.html?spm=a2g0s.9042311.0.0.6ed24c4dqzMIqP
+
+concentric and eccentric contraction image
+
+https://lsda.jsc.nasa.gov/Hardware/hardw/855
