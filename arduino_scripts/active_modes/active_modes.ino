@@ -2,7 +2,7 @@
 #include <HX711_ADC.h>
 #include <VL53L0X.h>
 #include <Wire.h>
-
+// halo 
 /* Full-active and assistive control functionality
  * --------------------------------------------------
  * for all active exercises, there are two operation running
